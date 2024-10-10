@@ -11,9 +11,9 @@ __all__ = [
 @dataclasses.dataclass(kw_only=True)
 class FieldConstraints:
     gt: int | None = None
-    ge: int | None = None
+    gte: int | None = None
     lt: int | None = None
-    le: int | None = None
+    lte: int | None = None
     max_length: int | None = None
     min_length: int | None = None
     max_digits: int | None = None

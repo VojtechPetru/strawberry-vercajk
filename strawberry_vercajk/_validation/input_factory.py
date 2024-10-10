@@ -137,9 +137,9 @@ class InputFactory:
         pydantic_adapter = pydbull.PydanticAdapter(type(input_validator))
         return directives.FieldConstraintsDirective(
             gt=clean_value(pydantic_adapter.get_greater_than(field_info)),
-            ge=clean_value(pydantic_adapter.get_greater_than_or_equal(field_info)),
+            gte=clean_value(pydantic_adapter.get_greater_than_or_equal(field_info)),
             lt=clean_value(pydantic_adapter.get_less_than(field_info)),
-            le=clean_value(pydantic_adapter.get_less_than_or_equal(field_info)),
+            lte=clean_value(pydantic_adapter.get_less_than_or_equal(field_info)),
             min_length=clean_value(pydantic_adapter.get_min_length(field_info)),
             max_length=clean_value(pydantic_adapter.get_max_length(field_info)),
             max_digits=clean_value(pydantic_adapter.get_decimal_max_digits(field_info)),

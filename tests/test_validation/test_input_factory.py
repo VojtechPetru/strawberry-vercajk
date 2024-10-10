@@ -186,9 +186,9 @@ def test_input_factory_field_constraints_directive_values() -> None:
     assert name_directive.max_length == 10
     assert name_directive.pattern == r"^\w+$"
     assert name_directive.gt is None
-    assert name_directive.ge is None
+    assert name_directive.gte is None
     assert name_directive.lt is None
-    assert name_directive.le is None
+    assert name_directive.lte is None
     assert name_directive.max_digits is None
     assert name_directive.decimal_places is None
     assert name_directive.multiple_of is None
@@ -198,9 +198,9 @@ def test_input_factory_field_constraints_directive_values() -> None:
     assert age_directive.max_length is None
     assert age_directive.pattern is None
     assert age_directive.gt == 0
-    assert age_directive.ge is None
+    assert age_directive.gte is None
     assert age_directive.lt is None
-    assert age_directive.le == 100
+    assert age_directive.lte == 100
     assert age_directive.max_digits is None
     assert age_directive.decimal_places is None
     assert age_directive.multiple_of == 2
@@ -210,9 +210,9 @@ def test_input_factory_field_constraints_directive_values() -> None:
     assert cash_directive.max_length is None
     assert cash_directive.pattern is None
     assert cash_directive.gt is None
-    assert cash_directive.ge == 0
+    assert cash_directive.gte == 0
     assert cash_directive.lt is None
-    assert cash_directive.le is None
+    assert cash_directive.lte is None
     assert cash_directive.max_digits == 5
     assert cash_directive.decimal_places == 2
     assert cash_directive.multiple_of == 0.5
