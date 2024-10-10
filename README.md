@@ -7,4 +7,4 @@ pip install strawberry-vercajk
 ```
 
 ## Documentation
-- [(Input) Validation docs](./_validation/README.md)
+- [(Input) Validation docs](./strawberry_vercajk/_validation/README.md)

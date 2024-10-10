@@ -36,6 +36,6 @@ jobs:
         if: steps.cache.outputs.cache-hit == 'true'
         run: poetry run pip --version >/dev/null 2>&1 || rm -rf .venv
       - name: Install Dependencies
-        run: poetry install --with dev --with integrations
+        run: poetry install --with dev
       - name: Test
         run: poetry run pytest

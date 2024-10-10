@@ -31,6 +31,11 @@ class UserCreateInputValidator(strawberry_vercajk.InputValidator):
     age: typing.Annotated[int, pydantic.Field(ge=0, le=150)]
 ```
 
+>[!TIP]
+> You can use [pydbull](https://github.com/COEXCZ/pydbull) library for converting data objects (such as Django models) 
+> to Pydantic models or adding validation rules based on model constraints.
+
+
 You can create a Strawberry mutation that uses these validators:
 ```python
 @strawberry.type(name="Company")
