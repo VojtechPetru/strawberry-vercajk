@@ -144,7 +144,7 @@ input UserCreateInput {
   name: String! @FieldConstraints(minLength: 5, maxLength: 100, pattern: "^[A-Z].*")
   company: CompanyInput!
   addresses: [AddressInput!]! @FieldConstraints(minLength: 1)
-  age: Int! @FieldConstraints(ge: 0, le: 150)
+  age: Int! @FieldConstraints(gte: 0, lte: 150)
 }
 ```
 
