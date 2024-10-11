@@ -1,3 +1,5 @@
+from ._app_settings import StrawberryVercajkSettings
+
 from ._validation.gql_types import (
     ErrorInterface,
     ErrorType,

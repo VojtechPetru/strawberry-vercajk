@@ -56,7 +56,7 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
                     # The `to_pydantic` method is used by strawberry to convert the input data to a pydantic model,
                     # but we need to override it.
                     # See `to_pydantic` method in `InputFactory.make` for more details.
-                    cleaned_data: CleanDataType = self.to_pydantic(is_inner=False)  # TODO - can it be moved here?
+                    cleaned_data: CleanDataType = self.to_pydantic(is_inner=False)
                 except pydantic.ValidationError as e:
                     self.clean_data = None
                     self.errors = _build_errors(e)

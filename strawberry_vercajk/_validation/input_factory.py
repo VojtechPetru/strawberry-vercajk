@@ -50,6 +50,7 @@ class InputFactory:
 
         fields = input_validator.model_fields.copy()
         for field_info in fields.values():
+            # If the field is also a pydantic model, we need to create a GraphQL input for it as well.
             if nested_input_validator := cls.__get_input_validator(field_info.annotation):
                 cls.make(nested_input_validator)
 

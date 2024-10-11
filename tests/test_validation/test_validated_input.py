@@ -4,7 +4,6 @@ import pydantic
 import pytest
 
 import strawberry_vercajk
-from strawberry_vercajk._validation.validator import ValidatedInput
 
 
 def test_validated_input() -> None:

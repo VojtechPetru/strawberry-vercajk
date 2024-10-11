@@ -9,13 +9,20 @@ readme = "README.md"
 python = "^3.12"
 strawberry-graphql = "^0.246.1"
 pydbull = {path = "../pydbull"}
+Django = {version = ">=3.2", optional = true}
+factory-boy = "^3.3.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pytest-mock = "^3.14.0"
+pytest-django = "^4.9.0"
+
+[tool.poetry.group.integrations.dependencies]
+Django = ">=3.2"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "tests.django_settings"
 
 [tool.ruff]
 line-length = 120
