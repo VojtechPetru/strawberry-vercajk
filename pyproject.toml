@@ -7,18 +7,17 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-strawberry-graphql = "^0.246.1"
+strawberry-graphql = ">=0.246.1"
 pydbull = {path = "../pydbull"}
-Django = {version = ">=3.2", optional = true}
-factory-boy = "^3.3.1"
+Django = ">=5.1"
+factory-boy = ">=3.3.1"
+strawberry-graphql-django = ">=0.48.0"
+graphql-sync-dataloaders = { git = "https://github.com/VojtechPetru/graphql-sync-dataloaders.git", rev = "15c80a2" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pytest-mock = "^3.14.0"
 pytest-django = "^4.9.0"
-
-[tool.poetry.group.integrations.dependencies]
-Django = ">=3.2"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -103,7 +102,13 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["strawberry_vercajk"]
-known-third-party = ["django", "pydantic", "pydbull"]
+known-third-party = [
+    "pydbull",
+    "django",
+    "pydantic",
+    "strawberry-graphql",
+    "strawberry-graphql-django",
+]
 extra-standard-library = ["typing_extensions"]
 
 [build-system]

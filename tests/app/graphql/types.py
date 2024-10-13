@@ -1,4 +1,5 @@
 import strawberry
+import strawberry.django
 
 __all__ = [
     "ColorType",
@@ -8,8 +9,11 @@ __all__ = [
     "FruitEaterType",
 ]
 
+from tests.app import models
+from tests.app.models import FruitPlant
 
-@strawberry.type
+
+@strawberry.django.type(models.Fruit)
 class FruitType:
     id: int
     name: str
@@ -19,28 +23,28 @@ class FruitType:
     eaters: list["FruitEaterType"]
 
 
-@strawberry.type
+@strawberry.django.type(models.FruitVariety)
 class FruitVarietyType:
     id: int
     name: str
     fruits: list["FruitType"]
 
 
-@strawberry.type
+@strawberry.django.type(FruitPlant)
 class FruitPlantType:
     id: int
     name: str
     fruit: FruitType | None
 
 
-@strawberry.type
+@strawberry.django.type(models.Color)
 class ColorType:
     id: int
     name: str
     fruits: list[FruitType]
 
 
-@strawberry.type
+@strawberry.django.type(models.FruitEater)
 class FruitEaterType:
     id: int
     name: str

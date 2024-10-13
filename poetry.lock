@@ -101,6 +101,24 @@ files = [
 ]
 
 [[package]]
+name = "graphql-sync-dataloaders"
+version = "0.1.1"
+description = "Use DataLoaders in your Python GraphQL servers that have to run in a sync context (i.e. Django)."
+optional = false
+python-versions = "^3.8"
+files = []
+develop = false
+
+[package.dependencies]
+graphql-core = "~3.2.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/VojtechPetru/graphql-sync-dataloaders.git"
+reference = "15c80a2"
+resolved_reference = "15c80a2b599a4e808cd55b399b67640bf4aba87d"
+
+[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -407,6 +425,26 @@ quart = ["quart (>=0.19.3)"]
 sanic = ["sanic (>=20.12.2)"]
 
 [[package]]
+name = "strawberry-graphql-django"
+version = "0.48.0"
+description = "Strawberry GraphQL Django extension"
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "strawberry_graphql_django-0.48.0-py3-none-any.whl", hash = "sha256:1b0b51737cddc23d9f524148b4bf4a642944135bd36f8780c66a7f47f2e15ada"},
+    {file = "strawberry_graphql_django-0.48.0.tar.gz", hash = "sha256:332065abbaed2e413155345904e468eceab50978c2a44926f209c6f038c79df8"},
+]
+
+[package.dependencies]
+asgiref = ">=3.8"
+django = ">=3.2"
+strawberry-graphql = ">=0.236.0"
+
+[package.extras]
+debug-toolbar = ["django-debug-toolbar (>=3.4)"]
+enum = ["django-choices-field (>=2.2.2)"]
+
+[[package]]
 name = "typing-extensions"
 version = "4.12.2"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -431,4 +469,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "5672fd500950e6eae7a18f4695c77e3d3a67dc0664233cac15adbeb73f858071"
+content-hash = "64128e379f42ba405e0a1bbd2b15266da48df39fa16a4cf993656ae6a9577a0f"
