@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = [
     "Filter",
-    "Filterset",
+    "FilterSet",
     "ListFilterset",
     "model_filter",
 ]
@@ -67,7 +67,7 @@ _FILTERS_FILTERSET_ATTR_NAME: typing.LiteralString = "__VERCAJK_FILTERS"
         strawberry.field,
     ),
 )
-def model_filter[T: "Filterset"](
+def model_filter[T: "FilterSet"](
     model: type[django.db.models.Model],
 ) -> typing.Callable[[type[T]], type[T]]:
     @functools.wraps(model_filter)
@@ -284,7 +284,7 @@ class Filter(FilterInterface):
         # assigned by the filter
         self.__field_name: typing.LiteralString | None = None
         self.__field_type: type | None = None
-        self.__filterset_cls: type[Filterset] | None = None
+        self.__filterset_cls: type[FilterSet] | None = None
 
     def __str__(self) -> str:
         return (
@@ -301,7 +301,7 @@ class Filter(FilterInterface):
         return self.__field_name
 
     @property
-    def filterset_cls(self) -> type["Filterset"]:
+    def filterset_cls(self) -> type["FilterSet"]:
         if self.__filterset_cls is None:
             raise ImproperlyInitializedFilterError(self)
         return self.__filterset_cls
@@ -407,7 +407,7 @@ class Filter(FilterInterface):
         self.__field_name = value
 
     @filterset_cls.setter
-    def filterset_cls(self, value: type["Filterset"]) -> None:
+    def filterset_cls(self, value: type["FilterSet"]) -> None:
         self.__filterset_cls = value
 
 
@@ -417,7 +417,7 @@ class ListFilterset:
         raise NotImplementedError
 
 
-class Filterset(InputValidator):
+class FilterSet(InputValidator):
     """
     Filterset for filtering a list of objects.
     It should be used together with the `model_filter` decorator.
@@ -436,6 +436,9 @@ class Filterset(InputValidator):
             ]
             ... other filters ...
     """
+
+    def __hash__(self) -> int:
+        return hash(tuple([type(self)] + [(k, v) for k, v in self.model_dump().items()]))
 
     def filter[T](self, qs: django.db.models.QuerySet[T], info: strawberry.Info) -> django.db.models.QuerySet[T]:
         """Perform the filtering on the queryset."""
@@ -589,7 +592,7 @@ class FilterFieldNotAnInstanceError(Exception):
 
 @dataclasses.dataclass
 class ImproperlyInitializedFilterSetError(Exception):
-    filter_set_cls: type[Filterset]
+    filter_set_cls: type[FilterSet]
 
     def __str__(self) -> str:
         return (

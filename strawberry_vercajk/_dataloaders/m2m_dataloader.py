@@ -1,3 +1,4 @@
+import functools
 import typing
 from collections import defaultdict
 
@@ -10,6 +11,11 @@ if typing.TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyToManyDescriptor
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
+
+
+class M2MDataLoaderClassKwargs(typing.TypedDict):
+    field_descriptor: "ManyToManyDescriptor"
+    query_origin: type[django.db.models.Model]
 
 
 class M2MDataLoader(core.BaseDataLoader):
@@ -31,13 +37,12 @@ class M2MDataLoader(core.BaseDataLoader):
                 return UserWorkplacesM2MDataLoader(context=info.context).load(self.pk)
     """
 
-    field_descriptor: typing.ClassVar["ManyToManyDescriptor"]  # field of the m2m relationship
-    query_origin: type[django.db.models.Model]  # from which model of the two is the query originated
+    Config: typing.ClassVar[M2MDataLoaderClassKwargs]
 
     @classmethod
     def get_through_model(cls) -> type[django.db.models.Model]:
         """Returns the through model of this m2m relationship."""
-        return cls.field_descriptor.rel.through
+        return cls.Config["field_descriptor"].rel.through
 
     def load_fn(self, keys: list[int]) -> list[list[django.db.models.Model]]:
         """
@@ -72,13 +77,13 @@ class M2MDataLoader(core.BaseDataLoader):
 
     @classmethod
     def query_target(cls) -> type[django.db.models.Model]:
-        field: django.db.models.ManyToManyField = cls.field_descriptor.field
-        model_query_origin = cls.query_origin
+        field: django.db.models.ManyToManyField = cls.Config["field_descriptor"].field
+        model_query_origin = cls.Config["query_origin"]
         return field.model if model_query_origin == field.related_model else field.related_model
 
     @classmethod
     def get_through_model_fields(cls) -> tuple[str, str]:
-        model_query_origin = cls.query_origin
+        model_query_origin = cls.Config["query_origin"]
         model_query_target = cls.query_target()
 
         query_origin_field_candidates = cls._get_through_model_field(model_query_origin)
@@ -142,23 +147,17 @@ class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
     @classmethod
     def make(
         cls,
-        field_descriptor: "ManyToManyDescriptor",
-        query_origin: type[django.db.models.Model],
+        **kwargs: typing.Unpack[M2MDataLoaderClassKwargs],
     ) -> type[M2MDataLoader]:
-        return super().make(field_descriptor=field_descriptor, query_origin=query_origin)
+        return super().make(field_descriptor=kwargs["field_descriptor"], query_origin=kwargs["query_origin"])
 
     @classmethod
-    def get_loader_unique_cls_name(
-        cls,
-        field_descriptor: "ManyToManyDescriptor",
-        query_origin: type[django.db.models.Model],
-        **kwargs,  # noqa: ARG003
-    ) -> str:
-        field: django.db.models.ManyToManyField = field_descriptor.field
+    def get_loader_unique_key(cls, **kwargs: typing.Unpack[M2MDataLoaderClassKwargs]) -> str:
+        field: django.db.models.ManyToManyField = kwargs["field_descriptor"].field
         model: type[django.db.models.Model] = field.model
         meta: Options = model._meta  # noqa: SLF001
         return (
-            f"{query_origin.__name__}{meta.app_label.capitalize()}{meta.object_name}"
+            f"{kwargs["query_origin"].__name__}{meta.app_label.capitalize()}{meta.object_name}"
             f"{field.attname.capitalize()}{cls.loader_class.__name__}"
         )
 
@@ -169,6 +168,6 @@ class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[django.db.models.Model] = root._meta.model  # noqa: SLF001
             field_descriptor: ManyToManyDescriptor = getattr(model, field_data.django_name)
-            return cls.make(field_descriptor=field_descriptor, query_origin=model)(context=info.context).load(root.pk)
+            return cls.make(field_descriptor=field_descriptor, query_origin=model)(info=info).load(root.pk)
 
         return resolver

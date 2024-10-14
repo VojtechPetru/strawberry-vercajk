@@ -1,3 +1,5 @@
+import typing
+
 import strawberry
 import strawberry.django
 
@@ -7,10 +9,31 @@ __all__ = [
     "FruitVarietyType",
     "FruitPlantType",
     "FruitEaterType",
+    "FruitEaterSortEnum",
+    "FruitEaterFilterSet",
 ]
 
+import strawberry_vercajk
 from tests.app import models
 from tests.app.models import FruitPlant
+
+
+@strawberry_vercajk.model_sort_enum(models.FruitEater)
+class FruitEaterSortEnum(strawberry_vercajk.FieldSortEnum):
+    ID = "id"
+    NAME = "name"
+    FAVOURITE_FRUIT_NAME = "favourite_fruit__name"
+
+
+@strawberry_vercajk.model_filter(models.FruitEater)
+class FruitEaterFilterSet(strawberry_vercajk.FilterSet):
+    name: typing.Annotated[
+        str | None,
+        strawberry_vercajk.Filter(
+            model_field="name",
+            lookup="icontains",
+        ),
+    ] = None
 
 
 @strawberry.django.type(models.Fruit)

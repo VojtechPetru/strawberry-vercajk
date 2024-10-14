@@ -6,9 +6,9 @@ import strawberry
 from django.db.models import QuerySet, F
 
 from strawberry_vercajk import pydantic_to_input_type
-from strawberry_vercajk._list.filter import Filterset, model_filter, Filter
+from strawberry_vercajk._list.filter import FilterSet, model_filter, Filter
 from strawberry_vercajk._list.graphql import PageInput, SortInput, ListType
-from strawberry_vercajk._list.processor import QSRespHandler
+from strawberry_vercajk._list.processor import ListRespHandler
 from strawberry_vercajk._list.sort import FieldSortEnum, model_sort_enum
 from tests.app import factories, models
 from tests.app.graphql import types
@@ -26,7 +26,7 @@ def annotate_plant_name(qs: QuerySet[models.Fruit]):
 
 
 @model_filter(models.Fruit)
-class FruitFilterset(Filterset):
+class FruitFilterSet(FilterSet):
     ids: typing.Annotated[
         list[int] | None,
         Filter(model_field="id", lookup="in"),
@@ -53,10 +53,11 @@ class Query:
         info: strawberry.Info,
         page: PageInput | None = strawberry.UNSET,
         sort: SortInput[FruitsSortEnum] | None = strawberry.UNSET,
-        filters: pydantic_to_input_type(FruitFilterset) | None = strawberry.UNSET,
+        filters: pydantic_to_input_type(FruitFilterSet) | None = strawberry.UNSET,
     ) -> ListType[types.FruitType]:
-        handler = QSRespHandler[models.Fruit](models.Fruit, info)
-        return handler.process(page=page, sort=sort, filters=filters)
+        handler = ListRespHandler[models.Fruit](models.Fruit, info)
+        resp = handler.process(page=page, sort=sort, filters=filters)
+        return resp
 
 
 test_schema = strawberry.Schema(

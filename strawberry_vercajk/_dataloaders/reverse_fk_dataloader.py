@@ -2,12 +2,14 @@ import typing
 from collections import defaultdict
 
 import strawberry
-from django.db.models import ForeignKey, Model, QuerySet
+from django.db.models import ForeignKey, Model, QuerySet, Window, F
 from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor, ReverseOneToOneDescriptor
+from django.db.models.functions import DenseRank
 
 from strawberry_vercajk._dataloaders import core
 
 if typing.TYPE_CHECKING:
+    from strawberry_vercajk import PageInput, SortInput, FilterSet
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
 
@@ -20,6 +22,13 @@ def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor | ReverseOn
     if isinstance(field_descriptor, ReverseOneToOneDescriptor):
         return field_descriptor.related.field
     return field_descriptor.field
+
+
+class ReverseFKDataLoaderClassKwargs(typing.TypedDict):
+    field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor"
+    page: typing.NotRequired["PageInput|None"]
+    sort: typing.NotRequired["SortInput|None"]
+    filterset: typing.NotRequired["FilterSet|None"]
 
 
 class ReverseFKDataLoader(core.BaseDataLoader):
@@ -48,15 +57,33 @@ class ReverseFKDataLoader(core.BaseDataLoader):
                 return UserBlogPostsReverseFKDataLoader(context=info.context).load(self.pk)
     """
 
-    field_descriptor: typing.ClassVar["ReverseManyToOneDescriptor | ReverseOneToOneDescriptor"]
+    Config: typing.ClassVar[ReverseFKDataLoaderClassKwargs]
+
+    # field_descriptor: typing.ClassVar["ReverseManyToOneDescriptor | ReverseOneToOneDescriptor"]
+    # page: typing.ClassVar["PageInput|None"]
+    # sort: typing.ClassVar["SortInput|None"]
+    # filterset: typing.ClassVar["FilterSet|None"]
 
     def load_fn(self, keys: list[int]) -> list[list[Model]] | list[Model]:
-
-        field = _get_related_field(type(self).field_descriptor)
+        field = _get_related_field(self.Config["field_descriptor"])
         model: type[Model] = field.model
         reverse_path: str = field.attname
 
         qs = model.objects.filter(**{f"{reverse_path}__in": keys})
+
+        if self.Config.get("filterset"):
+            qs = self.Config["filterset"].filter(qs, info=self.info)
+        if self.Config.get("sort"):
+            qs = self.Config["sort"].sort(qs)
+        if self.Config.get("page"):
+            qs = qs.annotate(
+                rank=Window(
+                    expression=DenseRank(),
+                    partition_by=[F(reverse_path)],
+                    order_by=self.Config["sort"].get_sort_q(),  # needs to be here, otherwise doesn't work
+                ),
+            ).filter(rank__in=range(1, self.Config.get("page").page_size + 1))
+
         # ensure that instances are ordered the same way as input 'ids'
         return self._get_results(qs=qs, keys=keys)
 
@@ -66,7 +93,7 @@ class ReverseFKDataLoader(core.BaseDataLoader):
         qs: QuerySet,
         keys: list[int],
     ) -> list[list[Model]] | list[Model]:
-        reverse_path: str = _get_related_field(cls.field_descriptor).attname
+        reverse_path: str = _get_related_field(cls.Config["field_descriptor"]).attname
         if cls.is_one_to_one():
             key_to_instance: dict[int, Model] = {getattr(instance, reverse_path): instance for instance in qs}
             return [key_to_instance.get(key) for key in keys]
@@ -79,7 +106,7 @@ class ReverseFKDataLoader(core.BaseDataLoader):
     @classmethod
     def is_one_to_one(cls) -> bool:
         """Whether the relationship is reverse relation of one-to-one."""
-        return isinstance(cls.field_descriptor, ReverseOneToOneDescriptor)
+        return isinstance(cls.Config["field_descriptor"], ReverseOneToOneDescriptor)
 
 
 class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]):
@@ -109,22 +136,36 @@ class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]
     loader_class = ReverseFKDataLoader
 
     @classmethod
-    def make(
-        cls,
-        field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor",
-    ) -> type[ReverseFKDataLoader]:
-        return super().make(field_descriptor=field_descriptor)
+    def make(cls, **kwargs: typing.Unpack[ReverseFKDataLoaderClassKwargs]) -> type[ReverseFKDataLoader]:
+        page = kwargs.get("page")
+        sort = kwargs.get("sort")
+        filterset = kwargs.get("filterset")
+        return super().make(
+            field_descriptor=kwargs["field_descriptor"],
+            page=page,
+            sort=sort,
+            filterset=filterset,
+            ephemeral=any([page, sort, filterset]),
+        )
 
     @classmethod
-    def get_loader_unique_cls_name(
-        cls,
-        field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor",
-        **kwargs,  # noqa: ARG003
-    ) -> str:
-        field = _get_related_field(field_descriptor)
+    def get_loader_unique_key(cls, **kwargs: typing.Unpack[ReverseFKDataLoaderClassKwargs]) -> str:
+        field = _get_related_field(kwargs["field_descriptor"])
         model: type[Model] = field.model
         meta: Options = model._meta  # noqa: SLF001
-        return f"{meta.app_label.capitalize()}{meta.object_name}{field.attname.capitalize()}{cls.loader_class.__name__}"
+        name = (
+            f"{meta.app_label.capitalize()}"
+            f"{meta.object_name}"
+            f"{field.attname.capitalize()}"
+            f"{cls.loader_class.__name__}"
+        )
+        if kwargs.get("page"):
+            name += f"Page{hash(kwargs['page'])}"
+        if kwargs.get("sort"):
+            name += f"Sort{hash(kwargs['sort'])}"
+        if kwargs.get("filterset"):
+            name += f"FilterSet{hash(kwargs['filterset'])}"
+        return name
 
     @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
@@ -133,6 +174,6 @@ class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[Model] = root._meta.model  # noqa: SLF001
             field_descriptor: ReverseManyToOneDescriptor = getattr(model, field_data.django_name)
-            return cls.make(field_descriptor=field_descriptor)(context=info.context).load(root.pk)
+            return cls.make(field_descriptor=field_descriptor)(info=info).load(root.pk)
 
         return resolver

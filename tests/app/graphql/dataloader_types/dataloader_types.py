@@ -1,42 +1,66 @@
+import enum
+import typing
+
 import strawberry
 import strawberry.django
 
+from strawberry_vercajk import (
+    PageInput, model_sort_enum, SortInput, model_filter, FilterSet, Filter, FieldSortEnum,
+    pydantic_to_input_type,
+)
 from strawberry_vercajk._dataloaders import PKDataLoader, ReverseFKDataLoader, M2MDataLoader
 from tests.app import models
+from tests.app.graphql.types import FruitEaterSortEnum, FruitEaterFilterSet
 
 
 class FruitDataLoader(PKDataLoader):
-    model = models.Fruit
+    Config = {
+        "model": models.Fruit,
+    }
 
 
 class ColorPKDataLoader(PKDataLoader):
-    model = models.Color
+    Config = {
+        "model": models.Color,
+    }
 
 
 class FruitReverseOneToOneDataLoader(ReverseFKDataLoader):
-    field_descriptor = models.FruitPlant.fruit
+    Config = {
+        "field_descriptor": models.FruitPlant.fruit,
+    }
 
 
 class FruitPlantPKDataLoader(PKDataLoader):
-    model = models.FruitPlant
+    Config = {
+        "model": models.FruitPlant,
+    }
 
 
 class FruitEatersReverseFKDataLoader(ReverseFKDataLoader):
-    field_descriptor = models.FruitEater.favourite_fruit
+    Config = {
+        "field_descriptor": models.FruitEater.favourite_fruit,
+    }
 
 
 class FruitPlantFruitReverseOneToOneDataLoader(ReverseFKDataLoader):
-    field_descriptor = models.Fruit.plant
+    Config = {
+        "field_descriptor": models.Fruit.plant,
+    }
 
 
 class FruitVarietiesM2MDataLoader(M2MDataLoader):
-    field_descriptor = models.Fruit.varieties
-    query_origin = models.Fruit  # from which model of the two is the query originated
+    Config = {
+        "field_descriptor": models.Fruit.varieties,
+        "query_origin": models.Fruit,
+    }
 
 
 class FruitVarietyFruitsM2MDataLoader(M2MDataLoader):
-    field_descriptor = models.Fruit.varieties
-    query_origin = models.FruitVariety  # from which model of the two is the query originated
+    Config = {
+        "field_descriptor": models.Fruit.varieties,
+        "query_origin": models.FruitVariety,  # from which model of the two is the query originated
+    }
 
 
 @strawberry.django.type(models.Color)
@@ -48,7 +72,7 @@ class ColorTypeDataLoadersType:
 
     @strawberry.field
     def fruits(self: "models.Color", info: "strawberry.Info") -> list["FruitTypeDataLoaders"]:
-        return ColorPKDataLoader(context=info.context).load(self.pk)
+        return ColorPKDataLoader(info=info).load(self.pk)
 
 
 @strawberry.django.type(models.FruitEater)
@@ -60,7 +84,7 @@ class FruitEaterDataLoadersType:
 
     @strawberry.field
     def favourite_fruit(self: "models.FruitEater", info: "strawberry.Info") -> "FruitTypeDataLoaders|None":
-        return FruitDataLoader(context=info.context).load(self.favourite_fruit_id)
+        return FruitDataLoader(info=info).load(self.favourite_fruit_id)
 
 
 @strawberry.django.type(models.FruitPlant)
@@ -72,7 +96,7 @@ class FruitPlantDataLoadersType:
 
     @strawberry.field
     def fruit(self: "models.FruitPlant", info: "strawberry.Info") -> "FruitTypeDataLoaders|None":
-        return FruitReverseOneToOneDataLoader(context=info.context).load(self.pk)
+        return FruitReverseOneToOneDataLoader(info=info).load(self.pk)
 
 
 @strawberry.django.type(models.FruitVariety)
@@ -84,7 +108,7 @@ class FruitVarietyDataLoadersType:
 
     @strawberry.field
     def fruits(self: "models.FruitVariety", info: "strawberry.Info") -> list["FruitTypeDataLoaders"]:
-        return FruitVarietyFruitsM2MDataLoader(context=info.context).load(self.pk)
+        return FruitVarietyFruitsM2MDataLoader(info=info).load(self.pk)
 
 
 @strawberry.django.type(models.Fruit)
@@ -96,16 +120,27 @@ class FruitTypeDataLoaders:
 
     @strawberry.field
     def color(self: "models.Fruit", info: "strawberry.Info") -> ColorTypeDataLoadersType | None:
-        return ColorPKDataLoader(context=info.context).load(self.color_id)
+        return ColorPKDataLoader(info=info).load(self.color_id)
 
     @strawberry.field
     def plant(self: "models.Fruit", info: "strawberry.Info") -> FruitPlantDataLoadersType | None:
-        return FruitPlantPKDataLoader(context=info.context).load(self.plant_id)
+        return FruitPlantPKDataLoader(info=info).load(self.plant_id)
 
     @strawberry.field
     def eaters(self: "models.Fruit", info: "strawberry.Info") -> list[FruitEaterDataLoadersType]:
-        return FruitEatersReverseFKDataLoader(context=info.context).load(self.pk)
+        return FruitEatersReverseFKDataLoader(info=info).load(self.pk)
+
+    @strawberry.field
+    def eaters_with_params(
+            self: "models.Fruit",
+            info: "strawberry.Info",
+            page: "PageInput|None" = strawberry.UNSET,
+            sort: "SortInput[FruitEaterSortEnum]|None" = strawberry.UNSET,
+            filters: pydantic_to_input_type(FruitEaterFilterSet) | None = strawberry.UNSET,
+    ) -> list[FruitEaterDataLoadersType]:
+        errors = filters.clean()
+        return FruitEatersReverseFKDataLoader(info=info).load(self.pk)
 
     @strawberry.field
     def varieties(self: "models.Fruit", info: "strawberry.Info") -> list[FruitVarietyDataLoadersType]:
-        return FruitVarietiesM2MDataLoader(context=info.context).load(self.pk)
+        return FruitVarietiesM2MDataLoader(info=info).load(self.pk)

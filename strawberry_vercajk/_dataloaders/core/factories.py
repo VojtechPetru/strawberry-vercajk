@@ -12,12 +12,15 @@ class BaseDataLoaderFactory[T: "BaseDataLoader"]:
     registered_dataloaders: typing.ClassVar[dict[typing.Hashable, type[T]]] = {}
 
     @classmethod
-    def make(cls, **class_vars) -> type[T]:
+    def make(cls, *, ephemeral: bool = False, **class_vars) -> type[T]:
         """
         Generates dataloader classes at runtime when they are used the first time, later gets them from cache.
         :param class_vars: kwargs passed to the dataloader class constructor
         """
-        dataloader_name = cls.get_loader_unique_cls_name(**class_vars)
+        dataloader_name = cls.get_loader_unique_key(**class_vars)
+        if ephemeral:
+            return cls._create_dataloader_cls(dataloader_name, **class_vars)
+
         if dataloader_name not in cls.registered_dataloaders:
             cls.registered_dataloaders[dataloader_name] = cls._create_dataloader_cls(dataloader_name, **class_vars)
         return cls.registered_dataloaders[dataloader_name]
@@ -29,15 +32,22 @@ class BaseDataLoaderFactory[T: "BaseDataLoader"]:
             type(
                 name,
                 (cls.loader_class,),
-                class_vars,
+                {"Config": class_vars},
             ),
         )
 
     @classmethod
-    @abc.abstractmethod
-    def get_loader_unique_cls_name(cls, *args, **kwargs) -> str:
-        """Return a *unique* name for the dataloader."""
-        raise NotImplementedError  # pragma: nocover
+    def get_loader_unique_key(cls, **kwargs) -> str:
+        """Return a *unique* name for the dataloader class."""
+        name: str = ""
+        for k, v in kwargs.items():
+            if v is None:
+                continue
+            if isinstance(v, type):
+                name += f"{k}={v.__name__}"
+            else:
+                name += f"{k}={v}"
+        return f"{cls.loader_class.__name__}{name}"
 
     @classmethod
     @abc.abstractmethod

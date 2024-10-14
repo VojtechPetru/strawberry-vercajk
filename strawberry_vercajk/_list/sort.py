@@ -27,6 +27,9 @@ def model_sort_enum[T: "FieldSortEnum"](
     def wrapper(
         sort_enum_class: type[T],
     ) -> type[T]:
+        if not issubclass(sort_enum_class, FieldSortEnum):
+            raise TypeError(f"`{sort_enum_class.__name__}` must be a subclass of `{FieldSortEnum.__name__}`.")
+
         if hasattr(sort_enum_class, _SORT_MODEL_ATTR_NAME):
             # Seems like an edge case. Decide what to do if this happens, maybe namespace the attribute better.
             raise ValueError(f"`{_SORT_MODEL_ATTR_NAME}` is already set for `{sort_enum_class.__name__}`.")

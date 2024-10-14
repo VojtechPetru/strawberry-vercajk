@@ -1,6 +1,7 @@
 import typing
 
 import strawberry
+from django.db.models import QuerySet, F
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection
@@ -67,7 +68,7 @@ class PageInput:
     )
     page_size: int = strawberry.field(
         default=1,
-        description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.GRAPHQL_MAX_PAGE_SIZE}.",
+        description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.LIST.MAX_PAGE_SIZE}.",
     )
 
     def __setattr__(
@@ -79,9 +80,12 @@ class PageInput:
             value = min(value, _MAX_PAGE_NUMBER)
             value = max(value, 1)
         elif key == "page_size":
-            value = min(value, app_settings.GRAPHQL_MAX_PAGE_SIZE)
+            value = min(value, app_settings.LIST.MAX_PAGE_SIZE)
             value = max(value, 1)
         super().__setattr__(key, value)
+
+    def __hash__(self) -> int:
+        return hash((self.page_number, self.page_size))
 
 
 @strawberry.input
@@ -120,6 +124,11 @@ class UnconstrainedPageInput:
 class SortFieldInput[T: FieldSortEnum]:
     field: T
     direction: OrderingDirection = OrderingDirection.ASC
+    nulls_first: bool = False
+    nulls_last: bool = False
+
+    def __hash__(self) -> int:
+        return hash((self.field, self.direction))
 
 
 @strawberry.input(
@@ -129,3 +138,53 @@ class SortFieldInput[T: FieldSortEnum]:
 )
 class SortInput[T: type[FieldSortEnum]]:
     ordering: list[SortFieldInput[T]]
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.ordering))
+
+    def sort[ItemsT: list | QuerySet](self, items: ItemsT) -> ItemsT:
+        if isinstance(items, QuerySet):
+            return items.order_by(*self.get_sort_q())
+        else:
+            # TODO - handle nulls first/last
+            return sorted(
+                items,
+                key=lambda item: tuple(
+                    _SortReverser(getattr(item, o.field.value))
+                    if o.direction.is_desc
+                    else getattr(item, o.field.value)
+                    for o in self.ordering
+                ),
+            )
+
+    def get_sort_q(self) -> list[F]:
+        q: list[F] = []
+        for o in self.ordering:
+            f = F(o.field.value)
+            if o.nulls_first:
+                f = f.asc(nulls_first=True) if o.direction.is_asc else f.desc(nulls_first=True)
+            elif o.nulls_last:
+                f = f.asc(nulls_last=True) if o.direction.is_asc else f.desc(nulls_last=True)
+            else:
+                f = f.asc() if o.direction.is_asc else f.desc()
+            q.append(f)
+        return q
+
+
+class _SortReverser:
+    """Reverses the order of the given object."""
+
+    def __init__(
+        self,
+        obj: typing.Any,  # noqa: ANN401
+    ) -> None:
+        self.obj = obj
+
+    def __eq__(self, other: "_SortReverser") -> bool:
+        return other.obj == self.obj
+
+    def __lt__(
+        self,
+        other: "_SortReverser",
+    ) -> bool:
+        return other.obj < self.obj
