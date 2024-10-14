@@ -273,8 +273,7 @@ def test_dataloader_factories() -> None:
     with strawberry_vercajk.QueryLogger() as ql:
         resp = run_query(get_query("factories"))
     assert len(ql.duplicates) is 0
-    # assert ql.num_queries == _DATALOADERS_QUERY_COUNT
-    # assert ql.num_queries == 11
+    assert ql.num_queries == _DATALOADERS_QUERY_COUNT
     check_response_data(resp, fruits)
 
 
