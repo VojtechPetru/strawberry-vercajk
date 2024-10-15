@@ -1,3 +1,5 @@
+import typing
+
 import strawberry
 import strawberry.django
 
@@ -5,6 +7,8 @@ import strawberry_vercajk
 from strawberry_vercajk._dataloaders import PKDataLoaderFactory, ReverseFKDataLoaderFactory, M2MDataLoaderFactory
 from tests.app import models
 from tests.app.graphql.types import FruitEaterSortEnum, FruitEaterFilterSet
+if typing.TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor, ReverseOneToOneDescriptor
 
 
 @strawberry.django.type(models.Color)
@@ -16,7 +20,7 @@ class ColorTypeDataLoaderFactories:
 
     @strawberry.field
     def fruits(self: "models.Color", info: "strawberry.Info") -> list["FruitTypeDataLoaderFactories"]:
-        loader = PKDataLoaderFactory.make(model=models.Fruit)
+        loader = PKDataLoaderFactory.make(config={"model": models.Fruit})
         return loader(info=info).load(self.pk)
 
 
@@ -29,7 +33,7 @@ class FruitEaterTypeDataLoaderFactories:
 
     @strawberry.field
     def favourite_fruit(self: "models.FruitEater", info: "strawberry.Info") -> "FruitTypeDataLoaderFactories|None":
-        loader = PKDataLoaderFactory.make(model=models.Fruit)
+        loader = PKDataLoaderFactory.make(config={"model": models.Fruit})
         return loader(info=info).load(self.favourite_fruit_id)
 
 'AppFruitPKDataLoader'
@@ -42,7 +46,8 @@ class FruitPlantDataLoaderFactoriesType:
 
     @strawberry.field
     def fruit(self: "models.FruitPlant", info: "strawberry.Info") -> "FruitTypeDataLoaderFactories|None":
-        loader = ReverseFKDataLoaderFactory.make(field_descriptor=models.FruitPlant.fruit)
+        field_descriptor: "ReverseOneToOneDescriptor" = models.FruitPlant.fruit
+        loader = ReverseFKDataLoaderFactory.make(config={"field_descriptor": field_descriptor})
         return loader(info=info).load(self.pk)
 
 
@@ -55,7 +60,12 @@ class FruitVarietyDataLoaderFactoriesType:
 
     @strawberry.field
     def fruits(self: "models.FruitVariety", info: "strawberry.Info") -> list["FruitTypeDataLoaderFactories"]:
-        loader = M2MDataLoaderFactory.make(field_descriptor=models.Fruit.varieties, query_origin=models.FruitVariety)
+        loader = M2MDataLoaderFactory.make(
+            config={
+                "field_descriptor": models.Fruit.varieties,
+                "query_origin": models.FruitVariety,
+            }
+        )
         return loader(info=info).load(self.pk)
 
 
@@ -68,17 +78,18 @@ class FruitTypeDataLoaderFactories:
 
     @strawberry.field
     def color(self: "models.Fruit", info: "strawberry.Info") -> ColorTypeDataLoaderFactories | None:
-        loader = PKDataLoaderFactory.make(model=models.Color)
+        loader = PKDataLoaderFactory.make(config={"model": models.Color})
         return loader(info=info).load(self.color_id)
 
     @strawberry.field
     def plant(self: "models.Fruit", info: "strawberry.Info") -> FruitPlantDataLoaderFactoriesType | None:
-        loader = PKDataLoaderFactory.make(model=models.FruitPlant)
+        loader = PKDataLoaderFactory.make(config={"model": models.FruitPlant})
         return loader(info=info).load(self.plant_id)
 
     @strawberry.field
     def eaters(self: "models.Fruit", info: "strawberry.Info") -> list[FruitEaterTypeDataLoaderFactories]:
-        loader = ReverseFKDataLoaderFactory.make(field_descriptor=models.FruitEater.favourite_fruit)
+        field_descriptor: "ReverseManyToOneDescriptor" = models.FruitEater.favourite_fruit
+        loader = ReverseFKDataLoaderFactory.make(config={"field_descriptor": field_descriptor})
         return loader(info=info).load(self.pk)
 
     @strawberry.field
@@ -88,20 +99,27 @@ class FruitTypeDataLoaderFactories:
             page: "strawberry_vercajk.PageInput|None" = strawberry.UNSET,
             sort: "strawberry_vercajk.SortInput[FruitEaterSortEnum]|None" = strawberry.UNSET,
             filters: strawberry_vercajk.pydantic_to_input_type(FruitEaterFilterSet) | None = strawberry.UNSET,
-    ) -> list[FruitEaterTypeDataLoaderFactories]:
+    ) -> strawberry_vercajk.ListInnerType["FruitEaterTypeDataLoaderFactories"]:
+        from strawberry_vercajk._dataloaders.reverse_fk_list_dataloader import ReverseFKListDataLoaderFactory
+
         filters.clean()
-        loader = ReverseFKDataLoaderFactory.make(
-            field_descriptor=models.FruitEater.favourite_fruit,
-            page=page,
-            sort=sort,
-            filterset=filters.clean_data,
+        field_descriptor: "ReverseManyToOneDescriptor" = models.FruitEater.favourite_fruit
+        loader = ReverseFKListDataLoaderFactory.make(
+            config={
+                "field_descriptor": field_descriptor,
+                "page": page,
+                "sort": sort,
+                "filterset": filters.clean_data,
+            }
         )
         return loader(info=info).load(self.pk)
 
     @strawberry.field
     def varieties(self: "models.Fruit", info: "strawberry.Info") -> list[FruitVarietyDataLoaderFactoriesType]:
         loader = M2MDataLoaderFactory.make(
-            field_descriptor=models.Fruit.varieties,
-            query_origin=models.Fruit,
+            config={
+                "field_descriptor": models.Fruit.varieties,
+                "query_origin": models.Fruit,
+            },
         )
         return loader(info=info).load(self.pk)

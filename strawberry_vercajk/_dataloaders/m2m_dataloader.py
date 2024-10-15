@@ -1,4 +1,3 @@
-import functools
 import typing
 from collections import defaultdict
 
@@ -147,17 +146,19 @@ class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
     @classmethod
     def make(
         cls,
-        **kwargs: typing.Unpack[M2MDataLoaderClassKwargs],
+        *,
+        config: M2MDataLoaderClassKwargs,
+        _ephemeral: bool = False,
     ) -> type[M2MDataLoader]:
-        return super().make(field_descriptor=kwargs["field_descriptor"], query_origin=kwargs["query_origin"])
+        return super().make(config=config, _ephemeral=_ephemeral)
 
     @classmethod
-    def get_loader_unique_key(cls, **kwargs: typing.Unpack[M2MDataLoaderClassKwargs]) -> str:
-        field: django.db.models.ManyToManyField = kwargs["field_descriptor"].field
+    def generate_loader_name(cls, config: M2MDataLoaderClassKwargs) -> str:
+        field: django.db.models.ManyToManyField = config["field_descriptor"].field
         model: type[django.db.models.Model] = field.model
         meta: Options = model._meta  # noqa: SLF001
         return (
-            f"{kwargs["query_origin"].__name__}{meta.app_label.capitalize()}{meta.object_name}"
+            f"{config["query_origin"].__name__}{meta.app_label.capitalize()}{meta.object_name}"
             f"{field.attname.capitalize()}{cls.loader_class.__name__}"
         )
 
@@ -168,6 +169,11 @@ class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[django.db.models.Model] = root._meta.model  # noqa: SLF001
             field_descriptor: ManyToManyDescriptor = getattr(model, field_data.django_name)
-            return cls.make(field_descriptor=field_descriptor, query_origin=model)(info=info).load(root.pk)
+            return cls.make(
+                config={
+                    "field_descriptor": field_descriptor,
+                    "query_origin": model,
+                },
+            )(info=info).load(root.pk)
 
         return resolver

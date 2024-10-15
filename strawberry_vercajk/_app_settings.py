@@ -13,6 +13,7 @@ __all__ = [
 
 class ListSettings(typing.TypedDict):
     """Settings of the Page."""
+
     # The maximum number of items which can be returned in a single page.
     MAX_PAGE_SIZE: typing.NotRequired[int]
     DEFAULT_PAGE_SIZE: typing.NotRequired[int]
@@ -27,11 +28,11 @@ class StrawberryVercajkSettings(typing.TypedDict):
 
 class AppListSettings:
     @property
-    def MAX_PAGE_SIZE(self) -> int:
+    def MAX_PAGE_SIZE(self) -> int:  # noqa: N802
         return self._settings.get("MAX_PAGE_SIZE", 100)
 
     @property
-    def DEFAULT_PAGE_SIZE(self) -> int:
+    def DEFAULT_PAGE_SIZE(self) -> int:  # noqa: N802
         return self._settings.get("DEFAULT_PAGE_SIZE", 10)
 
     @property

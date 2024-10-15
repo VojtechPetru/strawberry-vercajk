@@ -2,7 +2,6 @@ import typing
 
 import django.db.models
 import strawberry
-from django.conf import settings
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
@@ -30,7 +29,7 @@ class ListRespHandler[T: django.db.models.Model]:
 
     def __init__(
         self,
-        items: type[T] | django.db.models.QuerySet[T] | list[T],
+        items: type[T] | typing.Iterable[T],
         info: strawberry.Info,
     ) -> None:
         try:
@@ -66,8 +65,9 @@ class ListRespHandler[T: django.db.models.Model]:
             items=items_page.object_list,
         )
 
+    @classmethod
     def apply_pagination(
-        self,
+        cls,
         items: django.db.models.QuerySet[T] | list[T],
         page: PageInput | None = strawberry.UNSET,
     ) -> Page[T]:

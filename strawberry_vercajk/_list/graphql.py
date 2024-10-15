@@ -1,7 +1,7 @@
 import typing
 
 import strawberry
-from django.db.models import QuerySet, F
+from django.db.models import F, QuerySet
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection
@@ -14,8 +14,11 @@ _RETURN_ALL_ITEMS: int = -1  # a flag used to indicate that all items should be 
 
 
 __all__ = (
+    "PageMetadataInterface",
     "PageMetadataType",
+    "PageInnerMetadataType",
     "ListType",
+    "ListInnerType",
     "PageInput",
     "UnconstrainedPageInput",
     "SortFieldInput",
@@ -23,8 +26,22 @@ __all__ = (
 )
 
 
+@strawberry.type(name="PageInterface", description="List pagination interface.")
+class PageMetadataInterface:
+    current_page: int
+    page_size: int
+    items_count: int
+    has_next_page: bool
+    has_previous_page: bool
+
+
+@strawberry.type(name="PageInner", description="Pagination metadata.")
+class PageInnerMetadataType(PageMetadataInterface):
+    pass
+
+
 @strawberry.type(name="Page", description="Pagination metadata.")
-class PageMetadataType:
+class PageMetadataType(PageMetadataInterface):
     @strawberry.field(description="Current page number.")
     def current_page(self: "Page") -> int:
         return self.number
@@ -57,6 +74,12 @@ class PageMetadataType:
 @strawberry.type(name="List", description="List of items.")
 class ListType[T]:
     pagination: PageMetadataType
+    items: list[T]
+
+
+@strawberry.type(name="ListInner", description="List of items nested in a query.")
+class ListInnerType[T]:
+    pagination: PageInnerMetadataType
     items: list[T]
 
 
@@ -145,17 +168,16 @@ class SortInput[T: type[FieldSortEnum]]:
     def sort[ItemsT: list | QuerySet](self, items: ItemsT) -> ItemsT:
         if isinstance(items, QuerySet):
             return items.order_by(*self.get_sort_q())
-        else:
-            # TODO - handle nulls first/last
-            return sorted(
-                items,
-                key=lambda item: tuple(
-                    _SortReverser(getattr(item, o.field.value))
-                    if o.direction.is_desc
-                    else getattr(item, o.field.value)
-                    for o in self.ordering
-                ),
-            )
+        # TODO - handle nulls first/last
+        return sorted(
+            items,
+            key=lambda item: tuple(
+                _SortReverser(getattr(item, o.field.value))
+                if o.direction.is_desc
+                else getattr(item, o.field.value)
+                for o in self.ordering
+            ),
+        )
 
     def get_sort_q(self) -> list[F]:
         q: list[F] = []

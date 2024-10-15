@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class PKDataLoaderClassKwargs(typing.TypedDict):
+class PKDataLoaderClassKwargs(typing.TypedDict, total=False):
     model: type["django.db.models.Model"]
 
 
@@ -75,13 +75,18 @@ class PKDataLoaderFactory(core.BaseDataLoaderFactory[PKDataLoader]):
     loader_class = PKDataLoader
 
     @classmethod
-    def make(cls, **kwargs: typing.Unpack[PKDataLoaderClassKwargs]) -> type[PKDataLoader]:
-        return super().make(model=kwargs["model"])
+    def make(
+            cls,
+            *,
+            config: PKDataLoaderClassKwargs,
+            _ephemeral: bool = False,
+    ) -> type[PKDataLoader]:
+        return super().make(config=config, _ephemeral=_ephemeral)
 
     @classmethod
-    def get_loader_unique_key(cls, **class_kwargs: typing.Unpack[PKDataLoaderClassKwargs]) -> str:
-        model_cls = class_kwargs["model"]
-        return f"{model_cls._meta.app_label.capitalize()}{model_cls._meta.object_name}{cls.loader_class.__name__}"
+    def generate_loader_name(cls, config: PKDataLoaderClassKwargs) -> str:
+        model_cls = config["model"]
+        return f"{model_cls._meta.app_label.capitalize()}{model_cls._meta.object_name}{cls.loader_class.__name__}" # noqa: SLF001
 
     @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
@@ -90,6 +95,7 @@ class PKDataLoaderFactory(core.BaseDataLoaderFactory[PKDataLoader]):
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             relation: RelatedField = root._meta.get_field(field_name=field_data.django_name)  # noqa: SLF001
             pk: int = getattr(root, relation.attname)
-            return cls.make(model=field_data.django_model)(info=info).load(pk)
+            dj_model: type[django.db.models.Model] = relation.related_model
+            return cls.make(config={"model": dj_model})(info=info).load(pk)
 
         return resolver

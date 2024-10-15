@@ -10,8 +10,10 @@ from ._dataloaders.field import auto_dataloader_field
 
 from ._list.filter import FilterSet, Filter, ListFilterset, model_filter
 from ._list.graphql import (
+    PageInnerMetadataType,
     PageMetadataType,
     ListType,
+    ListInnerType,
     PageInput,
     UnconstrainedPageInput,
     SortFieldInput,
