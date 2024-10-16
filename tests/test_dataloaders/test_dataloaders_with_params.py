@@ -1,5 +1,6 @@
 import timeit
 import typing
+from wsgiref.validate import assert_
 
 import graphql_sync_dataloaders
 import pytest
@@ -75,14 +76,46 @@ test_schema = strawberry.Schema(
 QUERY_TPL = """
     %s {
         id
-        # varieties {  # TODO
-        #     id
-        #     name
-        #     fruits {  # tests the M2M dataloader from the "other" side (the model that doesn't have the M2M field)
-        #         id
-        #         name
-        #     }
-        # }
+        varieties {
+            id
+            name
+            fruits {  # TODO # tests the M2M dataloader from the "other" side (the model that doesn't have the M2M field)
+                id
+                name
+            }
+        }
+        varietiesWithParams (page: {pageNumber: 1, pageSize: 3}, sort: {ordering: {field: NAME, direction: ASC}}, filters: {name: "a"}){
+            items {
+                id
+                name
+                fruits {  # tests the M2M dataloader from the "other" side (the model that doesn't have the M2M field)
+                    id
+                    name
+                }
+                fruitsWithParams (page: {pageNumber: 1, pageSize: 3}, sort: {ordering: {field: NAME, direction: ASC}}, filters: {name: "a"}) {
+                    items {
+                        id
+                        name
+                    }
+                    pagination {
+                        currentPage
+                        itemsCount
+                        pageSize
+                        hasPreviousPage
+                        hasNextPage
+                    }
+                }
+            }
+            pagination {
+                currentPage
+                itemsCount
+                pageSize
+                hasPreviousPage
+                hasNextPage
+            }
+            
+        }
+        
         eaters {
             id
             name
@@ -133,26 +166,61 @@ def check_response_data(resp: "ExecutionResult", fruits: typing.Iterable[models.
     assert resp.errors is None
     assert resp.data is not None
     data: list[dict] = resp.data.popitem()[1]  # assumes that there's only one key
+    eaters_page_size: int = 2
+    varieties_page_size: int = 3
 
     for fruit, db_fruit in zip(sorted(data, key=lambda x: x["id"]), sorted(fruits, key=lambda x: x.id)):
         db_fruit: "models.Fruit"
-        # assert_lists_equal(
-        #     fruit["varieties"],
-        #     [
-        #         {
-        #             "id": v.pk,
-        #             "name": v.name,
-        #             "fruits": [
-        #                 {
-        #                     "id": f.pk,
-        #                     "name": f.name,
-        #                 }
-        #                 for f in v.fruits.all()
-        #             ],
-        #         }
-        #         for v in db_fruit.varieties.all()
-        #     ],
-        # )
+        assert_lists_equal(
+            fruit["varieties"],
+            [
+                {
+                    "id": v.pk,
+                    "name": v.name,
+                    "fruits": [
+                        {
+                            "id": f.pk,
+                            "name": f.name,
+                        }
+                        for f in v.fruits.all()
+                    ],
+                }
+                for v in db_fruit.varieties.all()
+            ],
+        )
+        assert_lists_equal(
+            fruit["varietiesWithParams"]["items"],
+            [
+                {
+                    "id": v.pk,
+                    "name": v.name,
+                    "fruits": [
+                        {
+                            "id": f.pk,
+                            "name": f.name,
+                        }
+                        for f in v.fruits.all()
+                    ],
+                    "fruitsWithParams": {
+                        "items": [
+                            {
+                                "id": f.pk,
+                                "name": f.name,
+                            }
+                            for f in v.fruits.filter(name__icontains="a").order_by("name")[:3]
+                        ],
+                        "pagination": {
+                            "currentPage": 1,
+                            "itemsCount": min(len(v.fruits.filter(name__icontains="a").order_by("name")[:3]), 3),
+                            "pageSize": 3,
+                            "hasPreviousPage": False,
+                            "hasNextPage": v.fruits.filter(name__icontains="a").count() > 3,
+                        },
+                    },
+                }
+                for v in db_fruit.varieties.filter(name__icontains="a").order_by("name")[:3]
+            ],
+        )
         assert_lists_equal(
             fruit["eaters"],
             [
@@ -173,13 +241,52 @@ def check_response_data(resp: "ExecutionResult", fruits: typing.Iterable[models.
                 for e in db_fruit.eaters.filter(name__icontains="a").order_by("name")[:2]
             ],
         )
-        page_size: int = 2
         assert fruit["eatersWithParams"]["pagination"] == {
             "currentPage": 1,
-            "itemsCount": min(len(db_fruit.eaters.filter(name__icontains="a").order_by("name")[:page_size]), page_size),
-            "pageSize": page_size,
+            "itemsCount": min(len(db_fruit.eaters.filter(name__icontains="a").order_by("name")[:eaters_page_size]), eaters_page_size),
+            "pageSize": eaters_page_size,
             "hasPreviousPage": False,
-            "hasNextPage": db_fruit.eaters.filter(name__icontains="a").count() > page_size,
+            "hasNextPage": db_fruit.eaters.filter(name__icontains="a").count() > eaters_page_size,
+        }
+        assert_lists_equal(
+            fruit["varietiesWithParams"]["items"],
+            [
+                {
+                    "id": v.pk,
+                    "name": v.name,
+                    "fruits": [
+                        {
+                            "id": f.pk,
+                            "name": f.name,
+                        }
+                        for f in v.fruits.all()
+                    ],
+                    "fruitsWithParams": {
+                        "items": [
+                            {
+                                "id": f.pk,
+                                "name": f.name,
+                            }
+                            for f in v.fruits.filter(name__icontains="a").order_by("name")[:3]
+                        ],
+                        "pagination": {
+                            "currentPage": 1,
+                            "itemsCount": min(len(v.fruits.filter(name__icontains="a").order_by("name")[:3]), 3),
+                            "pageSize": 3,
+                            "hasPreviousPage": False,
+                            "hasNextPage": v.fruits.filter(name__icontains="a").count() > 3,
+                        },
+                    },
+                }
+                for v in db_fruit.varieties.filter(name__icontains="a").order_by("name")[:3]
+            ],
+        )
+        assert fruit["varietiesWithParams"]["pagination"] == {
+            "currentPage": 1,
+            "itemsCount": min(len(db_fruit.varieties.filter(name__icontains="a").order_by("name")[:varieties_page_size]), varieties_page_size),
+            "pageSize": varieties_page_size,
+            "hasPreviousPage": False,
+            "hasNextPage": db_fruit.varieties.filter(name__icontains="a").count() > varieties_page_size,
         }
 
 
@@ -210,7 +317,7 @@ def test_dataloader_factories() -> None:
     with strawberry_vercajk.QueryLogger() as ql:
         resp = run_query(get_query("factories"))
     assert len(ql.duplicates) is 0
-    assert ql.num_queries == 3
+    assert ql.num_queries == 7
     check_response_data(resp, fruits)
 
 

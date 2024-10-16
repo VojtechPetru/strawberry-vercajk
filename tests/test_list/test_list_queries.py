@@ -12,6 +12,7 @@ from strawberry_vercajk._list.processor import ListRespHandler
 from strawberry_vercajk._list.sort import FieldSortEnum, model_sort_enum
 from tests.app import factories, models
 from tests.app.graphql import types
+from tests.app.graphql.types import FruitFilterSet
 from tests.base import get_list_query, ListQueryKwargs
 
 
@@ -19,30 +20,6 @@ from tests.base import get_list_query, ListQueryKwargs
 class FruitsSortEnum(FieldSortEnum):
     ID = "id"
     NAME = "name"
-
-
-def annotate_plant_name(qs: QuerySet[models.Fruit]):
-    return qs.annotate(annot_plant_name=F("plant__name"))
-
-
-@model_filter(models.Fruit)
-class FruitFilterSet(FilterSet):
-    ids: typing.Annotated[
-        list[int] | None,
-        Filter(model_field="id", lookup="in"),
-        pydantic.Field(
-            description="Search by ids.",
-        ),
-    ] = None
-    name: typing.Annotated[str | None, Filter(model_field="name", lookup="icontains")] = None
-    plant_name: typing.Annotated[
-        str | None,
-        Filter(
-            model_field="annot_plant_name",
-            lookup="icontains",
-            qs_annotation=annotate_plant_name,
-        ),
-    ] = None
 
 
 @strawberry.type

@@ -1,5 +1,6 @@
 import typing
 
+import pydantic
 import strawberry
 import strawberry.django
 
@@ -10,13 +11,20 @@ __all__ = [
     "FruitPlantType",
     "FruitEaterType",
     "FruitEaterSortEnum",
+    "FruitVarietySortEnum",
     "FruitEaterFilterSet",
+    "FruitVarietyFilterSet",
 ]
 
+from django.db.models import QuerySet, F
+
 import strawberry_vercajk
-from strawberry_vercajk import ListRespHandler
 from tests.app import models
 from tests.app.models import FruitPlant
+
+
+def annotate_plant_name(qs: QuerySet[models.Fruit]):
+    return qs.annotate(annot_plant_name=F("plant__name"))
 
 
 @strawberry_vercajk.model_sort_enum(models.FruitEater)
@@ -26,6 +34,20 @@ class FruitEaterSortEnum(strawberry_vercajk.FieldSortEnum):
     FAVOURITE_FRUIT_NAME = "favourite_fruit__name"
 
 
+@strawberry_vercajk.model_sort_enum(models.Fruit)
+class FruitSortEnum(strawberry_vercajk.FieldSortEnum):
+    ID = "id"
+    NAME = "name"
+    COLOR_NAME = "color__name"
+    PLANT_NAME = "plant__name"
+
+
+@strawberry_vercajk.model_sort_enum(models.FruitVariety)
+class FruitVarietySortEnum(strawberry_vercajk.FieldSortEnum):
+    ID = "id"
+    NAME = "name"
+
+
 @strawberry_vercajk.model_filter(models.FruitEater)
 class FruitEaterFilterSet(strawberry_vercajk.FilterSet):
     name: typing.Annotated[
@@ -33,6 +55,37 @@ class FruitEaterFilterSet(strawberry_vercajk.FilterSet):
         strawberry_vercajk.Filter(
             model_field="name",
             lookup="icontains",
+        ),
+    ] = None
+
+
+@strawberry_vercajk.model_filter(models.FruitVariety)
+class FruitVarietyFilterSet(strawberry_vercajk.FilterSet):
+    name: typing.Annotated[
+        str | None,
+        strawberry_vercajk.Filter(
+            model_field="name",
+            lookup="icontains",
+        ),
+    ] = None
+
+
+@strawberry_vercajk.model_filter(models.Fruit)
+class FruitFilterSet(strawberry_vercajk.FilterSet):
+    ids: typing.Annotated[
+        list[int] | None,
+        strawberry_vercajk.Filter(model_field="id", lookup="in"),
+        pydantic.Field(
+            description="Search by ids.",
+        ),
+    ] = None
+    name: typing.Annotated[str | None, strawberry_vercajk.Filter(model_field="name", lookup="icontains")] = None
+    plant_name: typing.Annotated[
+        str | None,
+        strawberry_vercajk.Filter(
+            model_field="annot_plant_name",
+            lookup="icontains",
+            qs_annotation=annotate_plant_name,
         ),
     ] = None
 
@@ -72,12 +125,64 @@ class FruitType:
             items=qs_page.object_list,
         )
 
+    @strawberry.field
+    def varieties_with_params(
+            self: "models.Fruit",
+            info: "strawberry.Info",
+            page: "strawberry_vercajk.PageInput|None" = strawberry.UNSET,
+            sort: "strawberry_vercajk.SortInput[FruitVarietySortEnum]|None" = strawberry.UNSET,
+            filters: strawberry_vercajk.pydantic_to_input_type(FruitVarietyFilterSet) = strawberry.UNSET,
+    ) -> strawberry_vercajk.ListInnerType["FruitVarietyType"]:
+        filters.clean()
+        qs = models.FruitVariety.objects.filter(fruits__id=self.pk)
+        handler = strawberry_vercajk.ListRespHandler(qs, info)
+        qs = handler.apply_filters(qs, filters.clean_data)
+        qs = handler.apply_sorting(qs, sort)
+        qs_page = handler.apply_pagination(qs, page)
+        items_count = qs_page.items_count
+        return strawberry_vercajk.ListInnerType[FruitVarietyType](
+            pagination=strawberry_vercajk.PageInnerMetadataType(
+                current_page=page.page_number,
+                page_size=page.page_size,
+                items_count=items_count,
+                has_next_page=qs_page.has_next(),
+                has_previous_page=qs_page.has_previous(),
+            ),
+            items=qs_page.object_list,
+        )
+
 
 @strawberry.django.type(models.FruitVariety)
 class FruitVarietyType:
     id: int
     name: str
     fruits: list["FruitType"]
+
+    @strawberry.field
+    def fruits_with_params(
+            self: "models.FruitVariety",
+            info: "strawberry.Info",
+            page: "strawberry_vercajk.PageInput|None" = strawberry.UNSET,
+            sort: "strawberry_vercajk.SortInput[FruitSortEnum]|None" = strawberry.UNSET,
+            filters: strawberry_vercajk.pydantic_to_input_type(FruitFilterSet) = strawberry.UNSET,
+    ) -> strawberry_vercajk.ListInnerType["FruitType"]:
+        filters.clean()
+        qs = models.Fruit.objects.filter(varieties__id=self.pk)
+        handler = strawberry_vercajk.ListRespHandler(qs, info)
+        qs = handler.apply_filters(qs, filters.clean_data)
+        qs = handler.apply_sorting(qs, sort)
+        qs_page = handler.apply_pagination(qs, page)
+        items_count = qs_page.items_count
+        return strawberry_vercajk.ListInnerType[FruitType](
+            pagination=strawberry_vercajk.PageInnerMetadataType(
+                current_page=page.page_number,
+                page_size=page.page_size,
+                items_count=items_count,
+                has_next_page=qs_page.has_next(),
+                has_previous_page=qs_page.has_previous(),
+            ),
+            items=qs_page.object_list,
+        )
 
 
 @strawberry.django.type(FruitPlant)

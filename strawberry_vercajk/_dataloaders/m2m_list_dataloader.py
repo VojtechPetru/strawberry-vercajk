@@ -3,23 +3,34 @@ from collections import defaultdict
 
 import django.db.models
 import strawberry
-from django.db.models import F
+from django.db.models import Window, F
+from django.db.models.functions import DenseRank
 
 from strawberry_vercajk._dataloaders import core
 
 if typing.TYPE_CHECKING:
+    from strawberry_vercajk import PageInput, SortInput, FilterSet, ListInnerType
     from django.db.models.fields.related_descriptors import ManyToManyDescriptor
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
 
 
-class M2MDataLoaderClassKwargs(typing.TypedDict):
+__all__ = (
+    "M2MListDataLoader",
+    "M2MListDataLoaderFactory",
+)
+
+
+class M2MListDataLoaderClassKwargs(typing.TypedDict):
     field_descriptor: "ManyToManyDescriptor"
     query_origin: type[django.db.models.Model]
+    page: typing.NotRequired["PageInput|None"]
+    sort: typing.NotRequired["SortInput|None"]
+    filterset: typing.NotRequired["FilterSet|None"]
 
 
-class M2MDataLoader(core.BaseDataLoader):
-    """
+class M2MListDataLoader(core.BaseDataLoader):
+    """  # TODO docstring
     Base loader for M2M relationship (e.g., Workplace of a User).
 
     EXAMPLE - load workplaces of a user:
@@ -37,19 +48,22 @@ class M2MDataLoader(core.BaseDataLoader):
                 return UserWorkplacesM2MDataLoader(context=info.context).load(self.pk)
     """
 
-    Config: typing.ClassVar[M2MDataLoaderClassKwargs]
+    Config: typing.ClassVar[M2MListDataLoaderClassKwargs]
 
     @classmethod
     def get_through_model(cls) -> type[django.db.models.Model]:
         """Returns the through model of this m2m relationship."""
         return cls.Config["field_descriptor"].rel.through
 
-    def load_fn(self, keys: list[int]) -> list[list[django.db.models.Model]]:
+    def load_fn(self, keys: list[int]) -> list["ListInnerType[django.db.models.Model]"]:
         """
         :param keys: list of ids from the parent model (e.g., if we want to get workplaces of users, keys are user ids)
         """
+        import strawberry_vercajk
+
         key_id_annot: str = "_key_id"
         accessor_name = self.accessor_name()
+        page = self.Config.get("page")
 
         target_qs = self.query_target().objects.annotate(
             **{key_id_annot: F(f"{accessor_name}__id")}
@@ -57,10 +71,47 @@ class M2MDataLoader(core.BaseDataLoader):
             **{f"{key_id_annot}__in": keys},
         ).order_by()
 
+        if self.Config.get("filterset"):
+            target_qs = self.Config["filterset"].filter(target_qs, info=self.info)
+        if self.Config.get("sort"):
+            target_qs = self.Config["sort"].sort(target_qs)
+        if page:
+            target_qs = target_qs.annotate(
+                rank=Window(
+                    expression=DenseRank(),
+                    partition_by=[F(key_id_annot)],
+                    order_by=self.Config["sort"].get_sort_q(),  # needs to be here, otherwise doesn't work
+                ),
+            ).filter(
+                rank__in=range(
+                    page.page_number,
+                    # + 2 because we need to add 1 to the page size to check if there's a next page
+                    page.page_size + 2,
+                ),
+            )
+
         key_to_targets: dict[int, list[django.db.models.Model]] = defaultdict(list)
         for target in target_qs:
             key_to_targets[getattr(target, key_id_annot)].append(target)
-        return [key_to_targets[key] for key in keys]
+
+
+        key_to_list_type: dict[int, "ListInnerType[django.db.models.Model]"] = {}
+        for key in keys:
+            items = key_to_targets.get(key, [])
+            items_count = len(items)
+            if items_count > page.page_size:
+                items = items[:page.page_size]  # we're getting 1 extra item to check if there's a next page
+            key_to_list_type[key] = strawberry_vercajk.ListInnerType(
+                items=items,
+                pagination=strawberry_vercajk.PageInnerMetadataType(
+                    current_page=page.page_number,
+                    page_size=page.page_size,
+                    items_count=items_count - 1 if items_count > page.page_size else items_count,
+                    has_next_page=items_count > page.page_size,
+                    has_previous_page=page.page_number > 1,
+                ),
+            )
+        return [key_to_list_type.get(key, []) for key in keys]
 
     @classmethod
     def query_target(cls) -> type[django.db.models.Model]:
@@ -76,7 +127,7 @@ class M2MDataLoader(core.BaseDataLoader):
         return field.attname if query_origin == field.related_model else descriptor.rel.accessor_name
 
 
-class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
+class M2MListDataLoaderFactory(core.BaseDataLoaderFactory[M2MListDataLoader]):
     """
     Base factory for M2M relationship dataloaders.
     For example, get Workplaces of a User.
@@ -101,28 +152,40 @@ class M2MDataLoaderFactory(core.BaseDataLoaderFactory[M2MDataLoader]):
 
     """
 
-    loader_class = M2MDataLoader
+    loader_class = M2MListDataLoader
 
     @classmethod
     def make(
         cls,
         *,
-        config: M2MDataLoaderClassKwargs,
+        config: M2MListDataLoaderClassKwargs,
         _ephemeral: bool = False,
-    ) -> type[M2MDataLoader]:
-        return super().make(config=config, _ephemeral=_ephemeral)
-
-    @classmethod
-    def generate_loader_name(cls, config: M2MDataLoaderClassKwargs) -> str:
-        field: django.db.models.ManyToManyField = config["field_descriptor"].field
-        model: type[django.db.models.Model] = field.model
-        meta: Options = model._meta  # noqa: SLF001
-        return (
-            f"{config["query_origin"].__name__}{meta.app_label.capitalize()}{meta.object_name}"
-            f"{field.attname.capitalize()}{cls.loader_class.__name__}"
+    ) -> type[M2MListDataLoader]:
+        return super().make(
+            config=config,
+            # We can't cache the dataloader class, since its "too specific" (for example, each filter value means
+            # different dataloader) and we could end up with possibly "infinite" number of classes in the memory.
+            _ephemeral=True,
         )
 
     @classmethod
+    def generate_loader_name(cls, config: M2MListDataLoaderClassKwargs) -> str:
+        field: django.db.models.ManyToManyField = config["field_descriptor"].field
+        model: type[django.db.models.Model] = field.model
+        meta: Options = model._meta  # noqa: SLF001
+        name = (
+            f"{config["query_origin"].__name__}{meta.app_label.capitalize()}{meta.object_name}"
+            f"{field.attname.capitalize()}{cls.loader_class.__name__}"
+        )
+        if config.get("page"):
+            name += "Paginated"
+        if config.get("sort"):
+            name += "Sorted"
+        if config.get("filterset"):
+            name += "Filtered"
+        return name
+
+    @classmethod  # TODO implement
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
         # the first arg needs to be called 'root'
         def resolver(root: "django.db.models.Model", info: "strawberry.Info") -> typing.Any:  # noqa: ANN401

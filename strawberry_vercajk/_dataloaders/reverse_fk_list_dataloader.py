@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
 
-    from strawberry_vercajk import FilterSet, PageInput, SortInput
+    from strawberry_vercajk import FilterSet, PageInput, SortInput, ListInnerType
 
 
 def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor") -> "ForeignKey":
@@ -21,6 +21,12 @@ def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor") -> "Forei
     the relationship is defined.
     """
     return field_descriptor.field
+
+
+__all__ = (
+    "ReverseFKListDataLoader",
+    "ReverseFKListDataLoaderFactory",
+)
 
 
 class ReverseFKListDataLoaderClassKwargs(typing.TypedDict):
@@ -59,7 +65,7 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
 
     Config: typing.ClassVar[ReverseFKListDataLoaderClassKwargs]
 
-    def load_fn(self, keys: list[int]) -> list[list[Model]] | list[Model]:
+    def load_fn(self, keys: list[int]) -> list["ListInnerType[Model]"]:
         import strawberry_vercajk
         from strawberry_vercajk._list.graphql import PageInnerMetadataType
 
@@ -67,12 +73,14 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
         model: type[Model] = field.model
         reverse_path: str = field.attname
 
+        page = self.Config.get("page")
+
         qs = model.objects.filter(**{f"{reverse_path}__in": keys})
         if self.Config.get("filterset"):
             qs = self.Config["filterset"].filter(qs, info=self.info)
         if self.Config.get("sort"):
             qs = self.Config["sort"].sort(qs)
-        if self.Config.get("page"):
+        if page:
             qs = qs.annotate(
                 rank=Window(
                     expression=DenseRank(),
@@ -81,9 +89,9 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
                 ),
             ).filter(
                 rank__in=range(
-                    self.Config.get("page").page_number,
+                    page.page_number,
                     # + 2 because we need to add 1 to the page size to check if there's a next page
-                    self.Config.get("page").page_size + 2,
+                    page.page_size + 2,
                 ),
             )
 
@@ -92,14 +100,13 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
         for instance in qs:
             key_to_instances[getattr(instance, reverse_path)].append(instance)
 
-        key_to_list_type: dict[int, strawberry_vercajk.ListType[Model]] = {}
+        key_to_list_type: dict[int, strawberry_vercajk.ListInnerType[Model]] = {}
         for id_ in keys:
-            page = self.Config.get("page")
             items = key_to_instances.get(id_, [])
             items_count = len(items)
             if items_count > page.page_size:
                 items = items[:page.page_size]  # we're getting 1 extra item to check if there's a next page
-            key_to_list_type[id_] = strawberry_vercajk.ListType(
+            key_to_list_type[id_] = strawberry_vercajk.ListInnerType(
                 items=items,
                 pagination=PageInnerMetadataType(
                     current_page=page.page_number,
@@ -115,7 +122,7 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
 
 class ReverseFKListDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKListDataLoader]):
     """
-    # TODO
+    # TODO docstring
     Base factory for reverse FK relationship dataloaders. For example, get blog posts of a User.
 
     Example:

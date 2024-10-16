@@ -23,7 +23,7 @@ def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor | ReverseOn
 
 
 class ReverseFKDataLoaderClassKwargs(typing.TypedDict):
-    field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor"
+    field_descriptor: "ReverseManyToOneDescriptor|ReverseOneToOneDescriptor"
 
 
 class ReverseFKDataLoader(core.BaseDataLoader):

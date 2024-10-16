@@ -45,4 +45,3 @@ class FruitVariety(TestModel):
 
 class Color(TestModel):
     pass
-

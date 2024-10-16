@@ -26,8 +26,8 @@ _DATALOADERS_QUERY_COUNT: int = (
         1 +
         # each nested "simple" (and reverse OneToOne) dataloader
         4 * 1 +
-        # each M2M (because M2M dataloader does 2 queries); M2M: root (fruit) -> varieties; varieties -> fruits
-        2 * 2
+        # each M2M: root (fruit) -> varieties; varieties -> fruits
+        1 * 2
 )
 
 
