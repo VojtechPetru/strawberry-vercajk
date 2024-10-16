@@ -6,6 +6,7 @@ import strawberry
 from django.db.models import Window, F
 from django.db.models.functions import DenseRank
 
+from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
 
 if typing.TYPE_CHECKING:
@@ -63,7 +64,11 @@ class M2MListDataLoader(core.BaseDataLoader):
 
         key_id_annot: str = "_key_id"
         accessor_name = self.accessor_name()
+        filterset = self.Config.get("filterset")
         page = self.Config.get("page")
+        sort = self.Config.get("sort")
+        if not page:
+            page = strawberry_vercajk.PageInput(page_number=1, page_size=app_settings.LIST.DEFAULT_PAGE_SIZE)
 
         target_qs = self.query_target().objects.annotate(
             **{key_id_annot: F(f"{accessor_name}__id")}
@@ -71,16 +76,16 @@ class M2MListDataLoader(core.BaseDataLoader):
             **{f"{key_id_annot}__in": keys},
         ).order_by()
 
-        if self.Config.get("filterset"):
-            target_qs = self.Config["filterset"].filter(target_qs, info=self.info)
-        if self.Config.get("sort"):
-            target_qs = self.Config["sort"].sort(target_qs)
+        if filterset:
+            target_qs = filterset.filter(target_qs, info=self.info)
+        if sort:
+            target_qs = sort.sort(target_qs)
         if page:
             target_qs = target_qs.annotate(
                 rank=Window(
                     expression=DenseRank(),
                     partition_by=[F(key_id_annot)],
-                    order_by=self.Config["sort"].get_sort_q(),  # needs to be here, otherwise doesn't work
+                    order_by=sort.get_sort_q() if sort else ["pk"],  # needs to be here, otherwise doesn't work
                 ),
             ).filter(
                 rank__in=range(
@@ -185,10 +190,16 @@ class M2MListDataLoaderFactory(core.BaseDataLoaderFactory[M2MListDataLoader]):
             name += "Filtered"
         return name
 
-    @classmethod  # TODO implement
+    @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
         # the first arg needs to be called 'root'
-        def resolver(root: "django.db.models.Model", info: "strawberry.Info") -> typing.Any:  # noqa: ANN401
+        def resolver(
+                root: "django.db.models.Model",
+                info: "strawberry.Info",
+                page: "PageInput|None" = strawberry.UNSET,
+                sort: "SortInput|None" = strawberry.UNSET,
+                filterset: "FilterSet|None" = strawberry.UNSET,
+        ) -> typing.Any:  # noqa: ANN401
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[django.db.models.Model] = root._meta.model  # noqa: SLF001
             field_descriptor: ManyToManyDescriptor = getattr(model, field_data.django_name)
@@ -196,6 +207,9 @@ class M2MListDataLoaderFactory(core.BaseDataLoaderFactory[M2MListDataLoader]):
                 config={
                     "field_descriptor": field_descriptor,
                     "query_origin": model,
+                    "page": page,
+                    "sort": sort,
+                    "filterset": filterset,
                 },
             )(info=info).load(root.pk)
 

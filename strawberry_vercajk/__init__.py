@@ -34,6 +34,6 @@ from ._validation.gql_types import (
 )
 from ._validation.directives import FieldConstraintsDirective
 from ._validation.input_factory import InputFactory
-from ._validation.validator import InputValidator, pydantic_to_input_type
+from ._validation.validator import ValidatedInput, InputValidator, pydantic_to_input_type
 
 from ._scalars import IntStr

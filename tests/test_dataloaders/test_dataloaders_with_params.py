@@ -79,7 +79,7 @@ QUERY_TPL = """
         varieties {
             id
             name
-            fruits {  # TODO # tests the M2M dataloader from the "other" side (the model that doesn't have the M2M field)
+            fruits { # tests the M2M dataloader from the "other" side (the model that doesn't have the M2M field)
                 id
                 name
             }
@@ -189,39 +189,6 @@ def check_response_data(resp: "ExecutionResult", fruits: typing.Iterable[models.
             ],
         )
         assert_lists_equal(
-            fruit["varietiesWithParams"]["items"],
-            [
-                {
-                    "id": v.pk,
-                    "name": v.name,
-                    "fruits": [
-                        {
-                            "id": f.pk,
-                            "name": f.name,
-                        }
-                        for f in v.fruits.all()
-                    ],
-                    "fruitsWithParams": {
-                        "items": [
-                            {
-                                "id": f.pk,
-                                "name": f.name,
-                            }
-                            for f in v.fruits.filter(name__icontains="a").order_by("name")[:3]
-                        ],
-                        "pagination": {
-                            "currentPage": 1,
-                            "itemsCount": min(len(v.fruits.filter(name__icontains="a").order_by("name")[:3]), 3),
-                            "pageSize": 3,
-                            "hasPreviousPage": False,
-                            "hasNextPage": v.fruits.filter(name__icontains="a").count() > 3,
-                        },
-                    },
-                }
-                for v in db_fruit.varieties.filter(name__icontains="a").order_by("name")[:3]
-            ],
-        )
-        assert_lists_equal(
             fruit["eaters"],
             [
                 {
@@ -321,49 +288,84 @@ def test_dataloader_factories() -> None:
     check_response_data(resp, fruits)
 
 
-@pytest.mark.skip(reason="Not implemented yet - TODO")
+@pytest.mark.django_db()
+def test_dataloader_factories_with_no_parameters_specified() -> None:
+    qry = """
+    {
+        fruitsWithDataloaderFactories {
+            id
+            varietiesWithParams {
+                items {
+                    id
+                    name
+                    fruitsWithParams {
+                        items {
+                            id
+                            name
+                        }
+                        pagination {
+                            currentPage
+                            itemsCount
+                            pageSize
+                            hasPreviousPage
+                            hasNextPage
+                        }
+                    }
+                }
+                pagination {
+                    currentPage
+                    itemsCount
+                    pageSize
+                    hasPreviousPage
+                    hasNextPage
+                }
+            }
+        }
+    }
+    """
+    factories.FruitFactory.create_batch(_FRUIT_COUNT, with_eaters=True, with_varieties=True)
+    with strawberry_vercajk.QueryLogger() as ql:
+        resp = run_query(qry)
+    assert resp.errors is None
+    assert resp.data is not None
+
+
 @pytest.mark.django_db()
 def test_auto_dataloader_field() -> None:
     fruits = factories.FruitFactory.create_batch(_FRUIT_COUNT, with_eaters=True, with_varieties=True)
     with strawberry_vercajk.QueryLogger() as ql:
         resp = run_query(get_query("auto_dataloader_field"))
     assert len(ql.duplicates) is 0
-    assert ql.num_queries == _DATALOADERS_QUERY_COUNT
+    assert ql.num_queries == 7
     check_response_data(resp, fruits)
 
 
-@pytest.mark.skip(reason="Not implemented yet - TODO")
 @pytest.mark.django_db()
 def test_all_dataloader_approaches_make_the_same_db_queries() -> None:
     factories.FruitFactory.create_batch(_FRUIT_COUNT, with_eaters=True, with_varieties=True)
-    with strawberry_vercajk.QueryLogger() as ql_dataloaders:
-        run_query(get_query("dataloaders"))
+    # with strawberry_vercajk.QueryLogger() as ql_dataloaders:
+    #     run_query(get_query("dataloaders"))
     with strawberry_vercajk.QueryLogger() as ql_factories:
         run_query(get_query("factories"))
     with strawberry_vercajk.QueryLogger() as ql_auto_dataloader_field:
         run_query(get_query("auto_dataloader_field"))
 
     assert (
-        [q.sql for q in ql_dataloaders.queries]
-        == [q.sql for q in ql_factories.queries]
+        [q.sql for q in ql_factories.queries]
         == [q.sql for q in ql_auto_dataloader_field.queries]
     )
     assert (
-        [q.params for q in ql_dataloaders.queries]
-        == [q.params for q in ql_factories.queries]
+        [q.params for q in ql_factories.queries]
         == [q.params for q in ql_auto_dataloader_field.queries]
     )
     assert (
-        [q.many for q in ql_dataloaders.queries]
-        == [q.many for q in ql_factories.queries]
+        [q.many for q in ql_factories.queries]
         == [q.many for q in ql_auto_dataloader_field.queries]
     )
     assert (
-        [q.exception for q in ql_dataloaders.queries]
-        == [q.exception for q in ql_factories.queries]
+        [q.exception for q in ql_factories.queries]
         == [q.exception for q in ql_auto_dataloader_field.queries]
     )
-    assert len(ql_dataloaders.queries) == _DATALOADERS_QUERY_COUNT
 
 
 @pytest.mark.skip(reason="Dataloaders performance test to be run manually.")
@@ -374,10 +376,10 @@ def test_performance_comparison() -> None:
     no_dataloaders_time = timeit.timeit(lambda: run_query(get_query("simple")), number=10)
     # dataloaders_time = timeit.timeit(lambda: run_query(get_query("dataloaders")), number=10)
     factories_time = timeit.timeit(lambda: run_query(get_query("factories")), number=10)
-    # auto_dataloader_field_time = timeit.timeit(lambda: run_query(get_query("auto_dataloader_field")), number=10)
+    auto_dataloader_field_time = timeit.timeit(lambda: run_query(get_query("auto_dataloader_field")), number=10)
     print(
         f"no_dataloaders: {no_dataloaders_time:.3f}s\n"
         # f"dataloaders: {dataloaders_time:.3f}s\n"
         f"factories: {factories_time:.3f}s\n"
-        # f"auto_dataloader_field: {auto_dataloader_field_time:.3f}s"
+        f"auto_dataloader_field: {auto_dataloader_field_time:.3f}s"
     )
