@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 strawberry-graphql = ">=0.246.1"
-pydbull = {path = "../pydbull"}
+pydbull = {git = "ssh://git@github.com/coexcz/pydbull.git", branch = "master"}
 Django = ">=5.1"
 factory-boy = ">=3.3.1"
 strawberry-graphql-django = ">=0.48.0"

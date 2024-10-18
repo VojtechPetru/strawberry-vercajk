@@ -76,13 +76,13 @@ doc = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
 
 [[package]]
 name = "faker"
-version = "30.3.0"
+version = "30.6.0"
 description = "Faker is a Python package that generates fake data for you."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Faker-30.3.0-py3-none-any.whl", hash = "sha256:e8a15fd1b0f72992b008f5ea94c70d3baa0cb51b0d5a0e899c17b1d1b23d2771"},
-    {file = "faker-30.3.0.tar.gz", hash = "sha256:8760fbb34564fbb2f394345eef24aec5b8f6506b6cfcefe8195ed66dd1032bdb"},
+    {file = "Faker-30.6.0-py3-none-any.whl", hash = "sha256:37b5ab951f7367ea93edb865120e9717a7a649d6a4b223f1e4a47a8a20d9e85f"},
+    {file = "faker-30.6.0.tar.gz", hash = "sha256:be0e548352c1be6f6d9c982003848a0d305868f160bb1fb7f945acffc347e676"},
 ]
 
 [package.dependencies]
@@ -91,13 +91,13 @@ typing-extensions = "*"
 
 [[package]]
 name = "graphql-core"
-version = "3.2.4"
+version = "3.2.5"
 description = "GraphQL implementation for Python, a port of GraphQL.js, the JavaScript reference implementation for GraphQL."
 optional = false
 python-versions = "<4,>=3.6"
 files = [
-    {file = "graphql-core-3.2.4.tar.gz", hash = "sha256:acbe2e800980d0e39b4685dd058c2f4042660b89ebca38af83020fd872ff1264"},
-    {file = "graphql_core-3.2.4-py3-none-any.whl", hash = "sha256:1604f2042edc5f3114f49cac9d77e25863be51b23a54a61a23245cf32f6476f0"},
+    {file = "graphql_core-3.2.5-py3-none-any.whl", hash = "sha256:2f150d5096448aa4f8ab26268567bbfeef823769893b39c1a2e1409590939c8a"},
+    {file = "graphql_core-3.2.5.tar.gz", hash = "sha256:e671b90ed653c808715645e3998b7ab67d382d55467b7e2978549111bbabf8d5"},
 ]
 
 [[package]]
@@ -281,7 +281,7 @@ typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
 name = "pydbull"
-version = "0.1.0"
+version = "0.1.2"
 description = ""
 optional = false
 python-versions = "^3.12"
@@ -292,8 +292,10 @@ develop = false
 pydantic = ">=2.9"
 
 [package.source]
-type = "directory"
-url = "../pydbull"
+type = "git"
+url = "ssh://git@github.com/coexcz/pydbull.git"
+reference = "master"
+resolved_reference = "08df3dd3daec82a99f11a1cb4b4c135aecbe2330"
 
 [[package]]
 name = "pytest"
@@ -392,13 +394,13 @@ doc = ["sphinx"]
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.246.1"
+version = "0.246.2"
 description = "A library for creating GraphQL APIs"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "strawberry_graphql-0.246.1-py3-none-any.whl", hash = "sha256:4d2e7dd7b4f0776a31aefd60bb30430e28c9431bd5fe851637c328416cd1a413"},
-    {file = "strawberry_graphql-0.246.1.tar.gz", hash = "sha256:f6eecca7eb823e55da9c20a9d4408c4fa029aac7ada83a0414e9fec1c11644a9"},
+    {file = "strawberry_graphql-0.246.2-py3-none-any.whl", hash = "sha256:a18d6404ac982b6ddca937c34e2832910fbdb38945bce656498c8d30c341277b"},
+    {file = "strawberry_graphql-0.246.2.tar.gz", hash = "sha256:ab3908014493cc0b98e45a8af2acd9980d18bd92a13d0c16811b1f49f3c62977"},
 ]
 
 [package.dependencies]
@@ -426,18 +428,18 @@ sanic = ["sanic (>=20.12.2)"]
 
 [[package]]
 name = "strawberry-graphql-django"
-version = "0.48.0"
+version = "0.49.0"
 description = "Strawberry GraphQL Django extension"
 optional = false
-python-versions = "<4.0,>=3.8"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "strawberry_graphql_django-0.48.0-py3-none-any.whl", hash = "sha256:1b0b51737cddc23d9f524148b4bf4a642944135bd36f8780c66a7f47f2e15ada"},
-    {file = "strawberry_graphql_django-0.48.0.tar.gz", hash = "sha256:332065abbaed2e413155345904e468eceab50978c2a44926f209c6f038c79df8"},
+    {file = "strawberry_graphql_django-0.49.0-py3-none-any.whl", hash = "sha256:70bff4e6f650e79d30ee69155a56b8dab4bf6a3fcb533d9361f6953bef248b37"},
+    {file = "strawberry_graphql_django-0.49.0.tar.gz", hash = "sha256:d94ea3718dbde85816b6fe183933a2f3795d23e374aa9f678efb480650700700"},
 ]
 
 [package.dependencies]
 asgiref = ">=3.8"
-django = ">=3.2"
+django = ">=4.2"
 strawberry-graphql = ">=0.236.0"
 
 [package.extras]
@@ -469,4 +471,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "64128e379f42ba405e0a1bbd2b15266da48df39fa16a4cf993656ae6a9577a0f"
+content-hash = "046da1370b1c36e1e458883ff88e73f02d6b8eee298451870ebe707dabc2aae1"
