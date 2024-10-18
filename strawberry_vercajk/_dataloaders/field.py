@@ -22,7 +22,11 @@ def get_dataloader_resolver(
     root: "django.db.models.Model",
     info: "strawberry.Info",
 ) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
-    from strawberry_vercajk._dataloaders import PKDataLoaderFactory, ReverseFKDataLoaderFactory, M2MDataLoaderFactory  # noqa: SLF001
+    from strawberry_vercajk._dataloaders import (
+        M2MDataLoaderFactory,
+        PKDataLoaderFactory,
+        ReverseFKDataLoaderFactory,
+    )
 
     field_data: StrawberryDjangoField = info._field  # noqa: SLF001
     relation: RelatedField = root._meta.get_field(field_name=field_data.django_name)  # noqa: SLF001

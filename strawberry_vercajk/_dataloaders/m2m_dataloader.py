@@ -43,7 +43,6 @@ class M2MDataLoader(core.BaseDataLoader):
         """
         :param keys: list of ids from the parent model (e.g., if we want to get workplaces of users, keys are user ids)
         """
-
         through_model = self.get_through_model()
         through_model_query_origin_field, through_model_target_field = self.get_through_model_fields()
 

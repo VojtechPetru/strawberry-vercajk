@@ -6,11 +6,11 @@ import django.core.paginator
 import django.db.models
 import django.utils.inspect
 
-
 __all__ = [
     "Paginator",
     "Page",
 ]
+
 
 class Paginator[T](django.core.paginator.Paginator):
     object_list: list[T] | django.db.models.QuerySet[T]

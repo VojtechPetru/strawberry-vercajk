@@ -57,7 +57,7 @@ class QueryLogger(_DbQueryGroup):
         print(ql.queries)
     """
 
-    def __enter__(self):
+    def __enter__(self) -> typing.Self:
         for connection in django.db.connections.all():
             connection.execute_wrappers.append(self)
         return self

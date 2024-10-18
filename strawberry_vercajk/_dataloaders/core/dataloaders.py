@@ -2,6 +2,7 @@ import abc
 import typing
 
 import graphql_sync_dataloaders
+
 from strawberry_vercajk._dataloaders.core import DataloadersContext
 
 
@@ -23,9 +24,9 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
         in the context of each request.
         """
         if not isinstance(context, DataloadersContext):
-            raise ValueError(
+            raise TypeError(
                 # TODO write setup guide (custom Info class with overridden context property to `schema`)
-                "strawberry.Info.context must be an instance of `strawberry_vercajk.DataloadersContext`."
+                "strawberry.Info.context must be an instance of `strawberry_vercajk.DataloadersContext`.",
             )
 
         if force_new or cls not in context.dataloaders:
