@@ -5,10 +5,10 @@ import django.db.models
 import strawberry.django
 
 if TYPE_CHECKING:
-    import strawberry_vercajk
-
     from django.db.models.fields.related import RelatedField  # pragma: nocover
     from strawberry_django.fields.field import StrawberryDjangoField  # pragma: nocover
+
+    import strawberry_vercajk
 
 
 __all__ = [
@@ -53,10 +53,9 @@ def get_dataloader_list_resolver(
     filters: "strawberry_vercajk.ValidatedInput[strawberry_vercajk.FilterSet]" = strawberry.UNSET,
 ) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
     from strawberry_vercajk._dataloaders import (
-        M2MDataLoaderFactory,
+        M2MListDataLoaderFactory,
         PKDataLoaderFactory,
         ReverseFKDataLoaderFactory,
-        M2MListDataLoaderFactory,
         ReverseFKListDataLoaderFactory,
     )
 
@@ -70,19 +69,25 @@ def get_dataloader_list_resolver(
         return PKDataLoaderFactory.as_resolver()(root, info)
     if relation.one_to_many:
         filters.clean()
-        return ReverseFKListDataLoaderFactory.as_resolver()(root, info, page=page, sort=sort, filterset=filters.clean_data)
+        return ReverseFKListDataLoaderFactory.as_resolver()(
+            root,
+            info,
+            page=page,
+            sort=sort,
+            filterset=filters.clean_data,
+        )
     if relation.many_to_many:
         filters.clean()
         return M2MListDataLoaderFactory.as_resolver()(root, info, page=page, sort=sort, filterset=filters.clean_data)
     raise UnsupportedRelationError(f"Unsupported relation on {relation.__repr__()}.")
 
 
-
 def auto_dataloader_field(
     resolver: typing.Callable[
         ["django.db.models.Model", strawberry.Info],
         typing.Callable[[typing.Any, strawberry.Info], typing.Any],
-    ] = None,
+    ]
+    | None = None,
     *,
     name: str | None = None,
     field_name: str | None = None,
@@ -118,11 +123,11 @@ def auto_dataloader_field(
     if resolver is None:
         if page or sort or filters:
             if page:
-                get_dataloader_list_resolver.__annotations__["page"] = typing.Optional[page]
+                get_dataloader_list_resolver.__annotations__["page"] = typing.Optional[page]  # noqa: UP007
             if sort:
-                get_dataloader_list_resolver.__annotations__["sort"] = typing.Optional[sort]
+                get_dataloader_list_resolver.__annotations__["sort"] = typing.Optional[sort]  # noqa: UP007
             if filters:
-                get_dataloader_list_resolver.__annotations__["filters"] = typing.Optional[filters]
+                get_dataloader_list_resolver.__annotations__["filters"] = typing.Optional[filters]  # noqa: UP007
 
             resolver = get_dataloader_list_resolver
         else:

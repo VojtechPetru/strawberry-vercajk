@@ -51,11 +51,16 @@ class M2MDataLoader(core.BaseDataLoader):
         key_id_annot: str = "_key_id"
         accessor_name = self.accessor_name()
 
-        target_qs = self.query_target().objects.annotate(
-            **{key_id_annot: F(f"{accessor_name}__id")}
-        ).filter(
-            **{f"{key_id_annot}__in": keys},
-        ).order_by()
+        target_qs = (
+            self.query_target()
+            .objects.annotate(
+                **{key_id_annot: F(f"{accessor_name}__id")},
+            )
+            .filter(
+                **{f"{key_id_annot}__in": keys},
+            )
+            .order_by()
+        )
 
         key_to_targets: dict[int, list[django.db.models.Model]] = defaultdict(list)
         for target in target_qs:

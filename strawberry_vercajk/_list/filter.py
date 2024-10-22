@@ -438,7 +438,7 @@ class FilterSet(InputValidator):
     """
 
     def __hash__(self) -> int:
-        return hash(tuple([type(self), *list(self.model_dump().items())]))
+        return hash(tuple([type(self), *list(self.model_dump().items())]))  # noqa: C409
 
     def filter[T](self, qs: django.db.models.QuerySet[T], info: strawberry.Info) -> django.db.models.QuerySet[T]:
         """Perform the filtering on the queryset."""

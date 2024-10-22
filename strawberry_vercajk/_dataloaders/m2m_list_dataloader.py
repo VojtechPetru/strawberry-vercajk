@@ -3,17 +3,18 @@ from collections import defaultdict
 
 import django.db.models
 import strawberry
-from django.db.models import Window, F
+from django.db.models import F, Window
 from django.db.models.functions import DenseRank
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
 
 if typing.TYPE_CHECKING:
-    from strawberry_vercajk import PageInput, SortInput, FilterSet, ListInnerType
     from django.db.models.fields.related_descriptors import ManyToManyDescriptor
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
+
+    from strawberry_vercajk import FilterSet, ListInnerType, PageInput, SortInput
 
 
 __all__ = (
@@ -31,7 +32,8 @@ class M2MListDataLoaderClassKwargs(typing.TypedDict):
 
 
 class M2MListDataLoader(core.BaseDataLoader):
-    """  # TODO docstring
+    """
+    # TODO docstring
     Base loader for M2M relationship (e.g., Workplace of a User).
 
     EXAMPLE - load workplaces of a user:
@@ -70,11 +72,16 @@ class M2MListDataLoader(core.BaseDataLoader):
         if not page:
             page = strawberry_vercajk.PageInput(page_number=1, page_size=app_settings.LIST.DEFAULT_PAGE_SIZE)
 
-        target_qs = self.query_target().objects.annotate(
-            **{key_id_annot: F(f"{accessor_name}__id")}
-        ).filter(
-            **{f"{key_id_annot}__in": keys},
-        ).order_by()
+        target_qs = (
+            self.query_target()
+            .objects.annotate(
+                **{key_id_annot: F(f"{accessor_name}__id")},
+            )
+            .filter(
+                **{f"{key_id_annot}__in": keys},
+            )
+            .order_by()
+        )
 
         if filterset:
             target_qs = filterset.filter(target_qs, info=self.info)
@@ -99,13 +106,12 @@ class M2MListDataLoader(core.BaseDataLoader):
         for target in target_qs:
             key_to_targets[getattr(target, key_id_annot)].append(target)
 
-
-        key_to_list_type: dict[int, "ListInnerType[django.db.models.Model]"] = {}
+        key_to_list_type: dict[int, ListInnerType[django.db.models.Model]] = {}
         for key in keys:
             items = key_to_targets.get(key, [])
             items_count = len(items)
             if items_count > page.page_size:
-                items = items[:page.page_size]  # we're getting 1 extra item to check if there's a next page
+                items = items[: page.page_size]  # we're getting 1 extra item to check if there's a next page
             key_to_list_type[key] = strawberry_vercajk.ListInnerType(
                 items=items,
                 pagination=strawberry_vercajk.PageInnerMetadataType(
@@ -194,11 +200,11 @@ class M2MListDataLoaderFactory(core.BaseDataLoaderFactory[M2MListDataLoader]):
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
         # the first arg needs to be called 'root'
         def resolver(
-                root: "django.db.models.Model",
-                info: "strawberry.Info",
-                page: "PageInput|None" = strawberry.UNSET,
-                sort: "SortInput|None" = strawberry.UNSET,
-                filterset: "FilterSet|None" = strawberry.UNSET,
+            root: "django.db.models.Model",
+            info: "strawberry.Info",
+            page: "PageInput|None" = strawberry.UNSET,
+            sort: "SortInput|None" = strawberry.UNSET,
+            filterset: "FilterSet|None" = strawberry.UNSET,
         ) -> typing.Any:  # noqa: ANN401
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[django.db.models.Model] = root._meta.model  # noqa: SLF001
