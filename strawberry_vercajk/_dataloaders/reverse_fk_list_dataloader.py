@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from django.db.models.options import Options
     from strawberry_django.fields.field import StrawberryDjangoField
 
-    from strawberry_vercajk import FilterSet, PageInput, SortInput, ListInnerType
+    from strawberry_vercajk import FilterSet, ListInnerType, PageInput, SortInput
 
 
 def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor") -> "ForeignKey":
@@ -110,7 +110,7 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
             items = key_to_instances.get(id_, [])
             items_count = len(items)
             if items_count > page.page_size:
-                items = items[:page.page_size]  # we're getting 1 extra item to check if there's a next page
+                items = items[: page.page_size]  # we're getting 1 extra item to check if there's a next page
             key_to_list_type[id_] = strawberry_vercajk.ListInnerType(
                 items=items,
                 pagination=PageInnerMetadataType(
@@ -154,10 +154,10 @@ class ReverseFKListDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKListDat
 
     @classmethod
     def make(
-            cls,
-            *,
-            config: ReverseFKListDataLoaderClassKwargs,
-            _ephemeral: bool = False,
+        cls,
+        *,
+        config: ReverseFKListDataLoaderClassKwargs,
+        _ephemeral: bool = False,
     ) -> type[ReverseFKListDataLoader]:
         return super().make(
             config=config,
@@ -185,15 +185,15 @@ class ReverseFKListDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKListDat
             name += "Filtered"
         return name
 
-    @classmethod # TODO - implement
+    @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
         # the first arg needs to be called 'root'
         def resolver(
-                root: "Model",
-                info: "strawberry.Info",
-                page: "PageInput|None" = strawberry.UNSET,
-                sort: "SortInput|None" = strawberry.UNSET,
-                filterset: "FilterSet|None" = strawberry.UNSET
+            root: "Model",
+            info: "strawberry.Info",
+            page: "PageInput|None" = strawberry.UNSET,
+            sort: "SortInput|None" = strawberry.UNSET,
+            filterset: "FilterSet|None" = strawberry.UNSET,
         ) -> typing.Any:  # noqa: ANN401
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[Model] = root._meta.model  # noqa: SLF001
@@ -204,6 +204,7 @@ class ReverseFKListDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKListDat
                     "page": page,
                     "sort": sort,
                     "filterset": filterset,
-                }
+                },
             )(info=info).load(root.pk)
+
         return resolver
