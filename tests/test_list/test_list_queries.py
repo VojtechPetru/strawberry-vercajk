@@ -6,12 +6,13 @@ import strawberry
 from django.db.models import QuerySet, F
 
 from strawberry_vercajk import pydantic_to_input_type
-from strawberry_vercajk._list.filter import Filterset, model_filter, Filter
+from strawberry_vercajk._list.filter import FilterSet, model_filter, Filter
 from strawberry_vercajk._list.graphql import PageInput, SortInput, ListType
-from strawberry_vercajk._list.processor import QSRespHandler
+from strawberry_vercajk._list.processor import ListRespHandler
 from strawberry_vercajk._list.sort import FieldSortEnum, model_sort_enum
 from tests.app import factories, models
 from tests.app.graphql import types
+from tests.app.graphql.types import FruitFilterSet
 from tests.base import get_list_query, ListQueryKwargs
 
 
@@ -19,30 +20,6 @@ from tests.base import get_list_query, ListQueryKwargs
 class FruitsSortEnum(FieldSortEnum):
     ID = "id"
     NAME = "name"
-
-
-def annotate_plant_name(qs: QuerySet[models.Fruit]):
-    return qs.annotate(annot_plant_name=F("plant__name"))
-
-
-@model_filter(models.Fruit)
-class FruitFilterset(Filterset):
-    ids: typing.Annotated[
-        list[int] | None,
-        Filter(model_field="id", lookup="in"),
-        pydantic.Field(
-            description="Search by ids.",
-        ),
-    ] = None
-    name: typing.Annotated[str | None, Filter(model_field="name", lookup="icontains")] = None
-    plant_name: typing.Annotated[
-        str | None,
-        Filter(
-            model_field="annot_plant_name",
-            lookup="icontains",
-            qs_annotation=annotate_plant_name,
-        ),
-    ] = None
 
 
 @strawberry.type
@@ -53,10 +30,11 @@ class Query:
         info: strawberry.Info,
         page: PageInput | None = strawberry.UNSET,
         sort: SortInput[FruitsSortEnum] | None = strawberry.UNSET,
-        filters: pydantic_to_input_type(FruitFilterset) | None = strawberry.UNSET,
+        filters: pydantic_to_input_type(FruitFilterSet) | None = strawberry.UNSET,
     ) -> ListType[types.FruitType]:
-        handler = QSRespHandler[models.Fruit](models.Fruit, info)
-        return handler.process(page=page, sort=sort, filters=filters)
+        handler = ListRespHandler[models.Fruit](models.Fruit, info)
+        resp = handler.process(page=page, sort=sort, filters=filters)
+        return resp
 
 
 test_schema = strawberry.Schema(

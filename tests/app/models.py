@@ -1,4 +1,8 @@
+import typing
+
 from django.db import models
+if typing.TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor, ReverseOneToOneDescriptor
 
 
 class TestModel(models.Model):
@@ -22,11 +26,16 @@ class Fruit(TestModel):
 
 
 class FruitPlant(TestModel):
-    pass
+    fruit: "Fruit|None|ReverseOneToOneDescriptor"
 
 
 class FruitEater(TestModel):
-    favourite_fruit = models.ForeignKey("Fruit", null=True, on_delete=models.SET_NULL, related_name="eaters")
+    favourite_fruit: "Fruit|None|ReverseManyToOneDescriptor" = models.ForeignKey(
+        "Fruit",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="eaters",
+    )
     favourite_fruit_id: int | None
 
 
@@ -36,4 +45,3 @@ class FruitVariety(TestModel):
 
 class Color(TestModel):
     pass
-

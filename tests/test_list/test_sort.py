@@ -4,7 +4,7 @@ import pytest
 
 from strawberry_vercajk._base.exceptions import ModelFieldDoesNotExistError
 from strawberry_vercajk._list.filter import (
-    model_filter, Filterset, Filter, FilterFieldTypeNotSupportedError,
+    model_filter, FilterSet, Filter, FilterFieldTypeNotSupportedError,
     FilterFieldNotAnInstanceError, FilterFieldLookupAmbiguousError, MissingFilterAnnotationError,
     MoreThanOneFilterAnnotationError,
 )

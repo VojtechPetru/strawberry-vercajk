@@ -15,3 +15,4 @@ __all__ = [
 @dataclasses.dataclass
 class DataloadersContext(StrawberryDjangoContext):
     dataloaders: dict[type["BaseDataLoader"], "BaseDataLoader"] = strawberry.field(default_factory=dict)
+    ephemeral_dataloaders: dict[typing.Hashable, "BaseDataLoader"] = strawberry.field(default_factory=dict)

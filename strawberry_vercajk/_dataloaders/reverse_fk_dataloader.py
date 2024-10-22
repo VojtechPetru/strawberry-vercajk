@@ -22,6 +22,10 @@ def _get_related_field(field_descriptor: "ReverseManyToOneDescriptor | ReverseOn
     return field_descriptor.field
 
 
+class ReverseFKDataLoaderClassKwargs(typing.TypedDict):
+    field_descriptor: "ReverseManyToOneDescriptor|ReverseOneToOneDescriptor"
+
+
 class ReverseFKDataLoader(core.BaseDataLoader):
     """
     Base loader for reversed FK relationship (e.g., BlogPosts of a User).
@@ -48,11 +52,10 @@ class ReverseFKDataLoader(core.BaseDataLoader):
                 return UserBlogPostsReverseFKDataLoader(context=info.context).load(self.pk)
     """
 
-    field_descriptor: typing.ClassVar["ReverseManyToOneDescriptor | ReverseOneToOneDescriptor"]
+    Config: typing.ClassVar[ReverseFKDataLoaderClassKwargs]
 
     def load_fn(self, keys: list[int]) -> list[list[Model]] | list[Model]:
-
-        field = _get_related_field(type(self).field_descriptor)
+        field = _get_related_field(self.Config["field_descriptor"])
         model: type[Model] = field.model
         reverse_path: str = field.attname
 
@@ -66,7 +69,7 @@ class ReverseFKDataLoader(core.BaseDataLoader):
         qs: QuerySet,
         keys: list[int],
     ) -> list[list[Model]] | list[Model]:
-        reverse_path: str = _get_related_field(cls.field_descriptor).attname
+        reverse_path: str = _get_related_field(cls.Config["field_descriptor"]).attname
         if cls.is_one_to_one():
             key_to_instance: dict[int, Model] = {getattr(instance, reverse_path): instance for instance in qs}
             return [key_to_instance.get(key) for key in keys]
@@ -79,7 +82,7 @@ class ReverseFKDataLoader(core.BaseDataLoader):
     @classmethod
     def is_one_to_one(cls) -> bool:
         """Whether the relationship is reverse relation of one-to-one."""
-        return isinstance(cls.field_descriptor, ReverseOneToOneDescriptor)
+        return isinstance(cls.Config["field_descriptor"], ReverseOneToOneDescriptor)
 
 
 class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]):
@@ -110,21 +113,24 @@ class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]
 
     @classmethod
     def make(
-        cls,
-        field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor",
+            cls,
+            *,
+            config: ReverseFKDataLoaderClassKwargs,
+            _ephemeral: bool = False,
     ) -> type[ReverseFKDataLoader]:
-        return super().make(field_descriptor=field_descriptor)
+        return super().make(config=config)
 
     @classmethod
-    def get_loader_unique_cls_name(
-        cls,
-        field_descriptor: "ReverseManyToOneDescriptor | ReverseOneToOneDescriptor",
-        **kwargs,  # noqa: ARG003
-    ) -> str:
-        field = _get_related_field(field_descriptor)
+    def generate_loader_name(cls, config: ReverseFKDataLoaderClassKwargs) -> str:
+        field = _get_related_field(config["field_descriptor"])
         model: type[Model] = field.model
         meta: Options = model._meta  # noqa: SLF001
-        return f"{meta.app_label.capitalize()}{meta.object_name}{field.attname.capitalize()}{cls.loader_class.__name__}"
+        return (
+            f"{meta.app_label.capitalize()}"
+            f"{meta.object_name}"
+            f"{field.attname.capitalize()}"
+            f"{cls.loader_class.__name__}"
+        )
 
     @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
@@ -133,6 +139,6 @@ class ReverseFKDataLoaderFactory(core.BaseDataLoaderFactory[ReverseFKDataLoader]
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             model: type[Model] = root._meta.model  # noqa: SLF001
             field_descriptor: ReverseManyToOneDescriptor = getattr(model, field_data.django_name)
-            return cls.make(field_descriptor=field_descriptor)(context=info.context).load(root.pk)
+            return cls.make(config={"field_descriptor": field_descriptor})(info=info).load(root.pk)
 
         return resolver

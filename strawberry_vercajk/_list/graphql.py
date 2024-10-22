@@ -1,6 +1,7 @@
 import typing
 
 import strawberry
+from django.db.models import F, QuerySet
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection
@@ -13,8 +14,11 @@ _RETURN_ALL_ITEMS: int = -1  # a flag used to indicate that all items should be 
 
 
 __all__ = (
+    "PageMetadataInterface",
     "PageMetadataType",
+    "PageInnerMetadataType",
     "ListType",
+    "ListInnerType",
     "PageInput",
     "UnconstrainedPageInput",
     "SortFieldInput",
@@ -22,8 +26,22 @@ __all__ = (
 )
 
 
+@strawberry.type(name="PageInterface", description="List pagination interface.")
+class PageMetadataInterface:
+    current_page: int
+    page_size: int
+    items_count: int
+    has_next_page: bool
+    has_previous_page: bool
+
+
+@strawberry.type(name="PageInner", description="Pagination metadata.")
+class PageInnerMetadataType(PageMetadataInterface):
+    pass
+
+
 @strawberry.type(name="Page", description="Pagination metadata.")
-class PageMetadataType:
+class PageMetadataType(PageMetadataInterface):
     @strawberry.field(description="Current page number.")
     def current_page(self: "Page") -> int:
         return self.number
@@ -59,6 +77,12 @@ class ListType[T]:
     items: list[T]
 
 
+@strawberry.type(name="ListInner", description="List of items nested in a query.")
+class ListInnerType[T]:
+    pagination: PageInnerMetadataType
+    items: list[T]
+
+
 @strawberry.input
 class PageInput:
     page_number: int = strawberry.field(
@@ -67,7 +91,7 @@ class PageInput:
     )
     page_size: int = strawberry.field(
         default=1,
-        description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.GRAPHQL_MAX_PAGE_SIZE}.",
+        description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.LIST.MAX_PAGE_SIZE}.",
     )
 
     def __setattr__(
@@ -79,9 +103,12 @@ class PageInput:
             value = min(value, _MAX_PAGE_NUMBER)
             value = max(value, 1)
         elif key == "page_size":
-            value = min(value, app_settings.GRAPHQL_MAX_PAGE_SIZE)
+            value = min(value, app_settings.LIST.MAX_PAGE_SIZE)
             value = max(value, 1)
         super().__setattr__(key, value)
+
+    def __hash__(self) -> int:
+        return hash((self.page_number, self.page_size))
 
 
 @strawberry.input
@@ -120,6 +147,11 @@ class UnconstrainedPageInput:
 class SortFieldInput[T: FieldSortEnum]:
     field: T
     direction: OrderingDirection = OrderingDirection.ASC
+    nulls_first: bool = False
+    nulls_last: bool = False
+
+    def __hash__(self) -> int:
+        return hash((self.field, self.direction))
 
 
 @strawberry.input(
@@ -129,3 +161,52 @@ class SortFieldInput[T: FieldSortEnum]:
 )
 class SortInput[T: type[FieldSortEnum]]:
     ordering: list[SortFieldInput[T]]
+
+    def __hash__(self) -> int:
+        return hash(tuple(self.ordering))
+
+    def sort[ItemsT: list | QuerySet](self, items: ItemsT) -> ItemsT:
+        if isinstance(items, QuerySet):
+            return items.order_by(*self.get_sort_q())
+        # TODO - handle nulls first/last
+        return sorted(
+            items,
+            key=lambda item: tuple(
+                _SortReverser(getattr(item, o.field.value))
+                if o.direction.is_desc
+                else getattr(item, o.field.value)
+                for o in self.ordering
+            ),
+        )
+
+    def get_sort_q(self) -> list[F]:
+        q: list[F] = []
+        for o in self.ordering:
+            f = F(o.field.value)
+            if o.nulls_first:
+                f = f.asc(nulls_first=True) if o.direction.is_asc else f.desc(nulls_first=True)
+            elif o.nulls_last:
+                f = f.asc(nulls_last=True) if o.direction.is_asc else f.desc(nulls_last=True)
+            else:
+                f = f.asc() if o.direction.is_asc else f.desc()
+            q.append(f)
+        return q
+
+
+class _SortReverser:
+    """Reverses the order of the given object."""
+
+    def __init__(
+        self,
+        obj: typing.Any,  # noqa: ANN401
+    ) -> None:
+        self.obj = obj
+
+    def __eq__(self, other: "_SortReverser") -> bool:
+        return other.obj == self.obj
+
+    def __lt__(
+        self,
+        other: "_SortReverser",
+    ) -> bool:
+        return other.obj < self.obj

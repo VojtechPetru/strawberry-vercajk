@@ -22,11 +22,19 @@ class Paginator[T](django.core.paginator.Paginator):
     def _get_page(self, *args: typing.Any, **kwargs: typing.Any) -> "Page[T]":
         return Page(*args, **kwargs)
 
+    @typing.override
+    def validate_number(self, number: int) -> int:
+        # the default implementation makes a db query to check for total count - we don't want that
+        return number
+
 
 class Page[T](django.core.paginator.Page):
     number: int
     paginator: Paginator[T]
     object_list: list[T] | django.db.models.QuerySet[T]
+
+    def __repr__(self) -> str:
+        return f"<Page {self.number}>"
 
     @functools.cached_property
     def items_count(self) -> int:

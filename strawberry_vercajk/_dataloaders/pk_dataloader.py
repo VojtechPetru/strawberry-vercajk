@@ -15,6 +15,10 @@ __all__ = [
 ]
 
 
+class PKDataLoaderClassKwargs(typing.TypedDict, total=False):
+    model: type["django.db.models.Model"]
+
+
 class PKDataLoader(core.BaseDataLoader):
     """
     Base loader for simple PK relationship (e.g., Alliance of Account).
@@ -35,10 +39,10 @@ class PKDataLoader(core.BaseDataLoader):
 
     """
 
-    model: typing.ClassVar[type["django.db.models.Model"]] = NotImplemented
+    Config = PKDataLoaderClassKwargs
 
     def load_fn(self, keys: list[int]) -> list[django.db.models.Model | None]:
-        qs = type(self).model.objects.filter(pk__in=keys).order_by()
+        qs = self.Config["model"].objects.filter(pk__in=keys).order_by()
         id_to_instance: dict[int, django.db.models.Model] = {instance.pk: instance for instance in qs}
         # ensure instances are ordered in the same way as input 'keys'
         return [id_to_instance.get(id_) for id_ in keys]
@@ -71,15 +75,18 @@ class PKDataLoaderFactory(core.BaseDataLoaderFactory[PKDataLoader]):
     loader_class = PKDataLoader
 
     @classmethod
-    def make(cls, model: type["django.db.models.Model"]) -> type[PKDataLoader]:
-        return super().make(model=model)
+    def make(
+            cls,
+            *,
+            config: PKDataLoaderClassKwargs,
+            _ephemeral: bool = False,
+    ) -> type[PKDataLoader]:
+        return super().make(config=config, _ephemeral=_ephemeral)
 
     @classmethod
-    def get_loader_unique_cls_name(
-        cls,
-        model: type["django.db.models.Model"],
-    ) -> str:
-        return f"{model._meta.app_label.capitalize()}{model._meta.object_name}{cls.loader_class.__name__}"  # noqa: SLF001
+    def generate_loader_name(cls, config: PKDataLoaderClassKwargs) -> str:
+        model_cls = config["model"]
+        return f"{model_cls._meta.app_label.capitalize()}{model_cls._meta.object_name}{cls.loader_class.__name__}" # noqa: SLF001
 
     @classmethod
     def as_resolver(cls) -> typing.Callable[[typing.Any, strawberry.Info], typing.Any]:
@@ -88,6 +95,7 @@ class PKDataLoaderFactory(core.BaseDataLoaderFactory[PKDataLoader]):
             field_data: StrawberryDjangoField = info._field  # noqa: SLF001
             relation: RelatedField = root._meta.get_field(field_name=field_data.django_name)  # noqa: SLF001
             pk: int = getattr(root, relation.attname)
-            return cls.make(model=field_data.django_model)(context=info.context).load(pk)
+            dj_model: type[django.db.models.Model] = relation.related_model
+            return cls.make(config={"model": dj_model})(info=info).load(pk)
 
         return resolver
