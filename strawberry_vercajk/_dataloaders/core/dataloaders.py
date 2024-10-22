@@ -1,4 +1,5 @@
 import abc
+import functools
 import typing
 
 import graphql_sync_dataloaders
@@ -25,9 +26,9 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
     Config: typing.ClassVar[dict]
 
     def __new__(
-            cls,
-            info: strawberry.Info[DataloadersContext],
-            **kwargs,
+        cls,
+        info: strawberry.Info[DataloadersContext],
+        **kwargs,
     ) -> "BaseDataLoader":
         """
         Returns a dataloader instance.
