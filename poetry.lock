@@ -76,13 +76,13 @@ doc = ["Sphinx", "sphinx-rtd-theme", "sphinxcontrib-spelling"]
 
 [[package]]
 name = "faker"
-version = "30.6.0"
+version = "30.8.0"
 description = "Faker is a Python package that generates fake data for you."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Faker-30.6.0-py3-none-any.whl", hash = "sha256:37b5ab951f7367ea93edb865120e9717a7a649d6a4b223f1e4a47a8a20d9e85f"},
-    {file = "faker-30.6.0.tar.gz", hash = "sha256:be0e548352c1be6f6d9c982003848a0d305868f160bb1fb7f945acffc347e676"},
+    {file = "Faker-30.8.0-py3-none-any.whl", hash = "sha256:4cd0c5ea4bc1e4c902967f6e662f5f5da69f1674d9a94f54e516d27f3c2a6a16"},
+    {file = "faker-30.8.0.tar.gz", hash = "sha256:3608c7fcac2acde0eaa6da28dae97628f18f14d54eaa2a92b96ae006f1621bd7"},
 ]
 
 [package.dependencies]
@@ -281,10 +281,10 @@ typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
 name = "pydbull"
-version = "0.1.2"
+version = "0.1.6"
 description = ""
 optional = false
-python-versions = "^3.12"
+python-versions = ">=3.12"
 files = []
 develop = false
 
@@ -295,7 +295,7 @@ pydantic = ">=2.9"
 type = "git"
 url = "ssh://git@github.com/coexcz/pydbull.git"
 reference = "master"
-resolved_reference = "08df3dd3daec82a99f11a1cb4b4c135aecbe2330"
+resolved_reference = "0f933d8162a57f20447316744aea361e6a31e621"
 
 [[package]]
 name = "pytest"
@@ -394,13 +394,13 @@ doc = ["sphinx"]
 
 [[package]]
 name = "strawberry-graphql"
-version = "0.246.2"
+version = "0.247.0"
 description = "A library for creating GraphQL APIs"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "strawberry_graphql-0.246.2-py3-none-any.whl", hash = "sha256:a18d6404ac982b6ddca937c34e2832910fbdb38945bce656498c8d30c341277b"},
-    {file = "strawberry_graphql-0.246.2.tar.gz", hash = "sha256:ab3908014493cc0b98e45a8af2acd9980d18bd92a13d0c16811b1f49f3c62977"},
+    {file = "strawberry_graphql-0.247.0-py3-none-any.whl", hash = "sha256:607714c537f8c3e98b80b0de14467f012dd839bff5e4961eee311a39d27786ba"},
+    {file = "strawberry_graphql-0.247.0.tar.gz", hash = "sha256:a8ea47b37cf75eca31acc7929ec045d2c32a54b76a95e0cad3e9bf33d79f53ab"},
 ]
 
 [package.dependencies]
@@ -428,13 +428,13 @@ sanic = ["sanic (>=20.12.2)"]
 
 [[package]]
 name = "strawberry-graphql-django"
-version = "0.49.0"
+version = "0.49.1"
 description = "Strawberry GraphQL Django extension"
 optional = false
 python-versions = "<4.0,>=3.9"
 files = [
-    {file = "strawberry_graphql_django-0.49.0-py3-none-any.whl", hash = "sha256:70bff4e6f650e79d30ee69155a56b8dab4bf6a3fcb533d9361f6953bef248b37"},
-    {file = "strawberry_graphql_django-0.49.0.tar.gz", hash = "sha256:d94ea3718dbde85816b6fe183933a2f3795d23e374aa9f678efb480650700700"},
+    {file = "strawberry_graphql_django-0.49.1-py3-none-any.whl", hash = "sha256:308ed5113bae92f7cc6f05fa7a178124fc1b72a4508f9a68828a28b99a9dacf1"},
+    {file = "strawberry_graphql_django-0.49.1.tar.gz", hash = "sha256:05ac677edc57e6e7411080574b607750109c5e879af3b524dfb0307f438c9800"},
 ]
 
 [package.dependencies]
