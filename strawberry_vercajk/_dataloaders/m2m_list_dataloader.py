@@ -8,6 +8,7 @@ from django.db.models.functions import DenseRank
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
+from strawberry_vercajk._list.django import get_django_filter_q, get_django_order_by
 
 if typing.TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyToManyDescriptor
@@ -84,15 +85,15 @@ class M2MListDataLoader(core.BaseDataLoader):
         )
 
         if filterset:
-            target_qs = filterset.filter(target_qs, info=self.info)
+            target_qs = target_qs.filter(get_django_filter_q(filterset.get_filter_q(info=self.info)))
         if sort:
-            target_qs = sort.sort(target_qs)
+            target_qs = target_qs.order_by(*get_django_order_by(sort))
         if page:
             target_qs = target_qs.annotate(
                 rank=Window(
                     expression=DenseRank(),
                     partition_by=[F(key_id_annot)],
-                    order_by=sort.get_sort_q() if sort else ["pk"],  # needs to be here, otherwise doesn't work
+                    order_by=get_django_order_by(sort) if sort else ["pk"],  # needs to be here, otherwise doesn't work
                 ),
             ).filter(
                 rank__in=range(

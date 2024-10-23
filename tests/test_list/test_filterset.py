@@ -46,13 +46,13 @@ def test_filterset_with_nonexistent_related_model_field_raises_error() -> None:
     assert str(exc_info.value)
 
 
-def test_filterset_with_nonexistent_related_model_field_does_not_raise_an_error_if_marked_as_annotated() -> None:
+def test_filterset_with_nonexistent_related_model_field_does_not_raise_an_error_if_check_field_exists_false() -> None:
     @model_filter(models.FruitEater)
     class FruitEaterFilterSet(FilterSet):
         non_existent: typing.Annotated[str | None, Filter(
             model_field="favourite_fruit__plant__non_existent",
             lookup="icontains",
-            is_annotated=True,
+            check_field_exists=False,
         ),
         ] = None
 

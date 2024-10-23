@@ -1,28 +1,28 @@
+__all__ = [
+    "Filter",
+    "FilterQ",
+    "FilterSet",
+    "FilterSetInput",
+    "model_filter",
+]
+
 import abc
 import dataclasses
 import functools
 import types
 import typing
 import typing_extensions
+from datetime import date, datetime
+from decimal import Decimal
 
-import django.core.exceptions
-import django.db.models
+import pydantic
+import pydantic.fields
 import strawberry
-from django.db.models import Q, QuerySet
 from strawberry.types.field import StrawberryField
 
 from strawberry_vercajk._base import utils as base_utils
-from strawberry_vercajk._validation.validator import InputValidator
-
-if typing.TYPE_CHECKING:
-    import pydantic.fields
-
-__all__ = [
-    "Filter",
-    "FilterSet",
-    "ListFilterset",
-    "model_filter",
-]
+from strawberry_vercajk._base.types import UNSET
+from strawberry_vercajk._validation.validator import InputValidator, ValidatedInput
 
 # Add more when needed. See django.db.models.lookups or django.db.models.<FieldClass>.get_lookups().
 _DBLookupType = typing.Literal[
@@ -60,6 +60,45 @@ _FILTER_MODEL_ATTR_NAME: typing.LiteralString = "__VERCAJK_MODEL"
 _FILTERS_FILTERSET_ATTR_NAME: typing.LiteralString = "__VERCAJK_FILTERS"
 
 
+@dataclasses.dataclass
+class FilterQ:
+    field: str = UNSET
+    lookup: _DBLookupType = UNSET
+    value: str | int | float | Decimal | date | datetime | None = UNSET
+    _left: typing.Self | None = None
+    _right: typing.Self | None = None
+    _operator: typing.Literal["AND", "OR", "NOT"] | None = None
+
+    def __and__(self, other: typing.Self) -> typing.Self:
+        return FilterQ(_left=self, _right=other, _operator="AND")
+
+    def __or__(self, other: typing.Self) -> typing.Self:
+        return FilterQ(_left=self, _right=other, _operator="OR")
+
+    def __invert__(self) -> typing.Self:
+        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
+
+    @property
+    def left(self) -> typing.Self:
+        return self._left
+
+    @property
+    def right(self) -> typing.Self:
+        return self._right
+
+    @property
+    def is_and(self) -> bool:
+        return self._operator == "AND"
+
+    @property
+    def is_or(self) -> bool:
+        return self._operator == "OR"
+
+    @property
+    def is_not(self) -> bool:
+        return self._operator == "NOT"
+
+
 @typing_extensions.dataclass_transform(
     order_default=True,
     field_specifiers=(
@@ -68,7 +107,7 @@ _FILTERS_FILTERSET_ATTR_NAME: typing.LiteralString = "__VERCAJK_FILTERS"
     ),
 )
 def model_filter[T: "FilterSet"](
-    model: type[django.db.models.Model],
+    model: type,
 ) -> typing.Callable[[type[T]], type[T]]:
     @functools.wraps(model_filter)
     def wrapper(
@@ -91,7 +130,7 @@ class FilterInterface:
         self,
         value: typing.Any,  # noqa: ANN401
         info: strawberry.Info,
-    ) -> Q:
+    ) -> FilterQ:
         """
         Get the filter expression for the filter.
         :param value: Value to filter by
@@ -107,15 +146,6 @@ class FilterInterface:
         If the filter is a combination of multiple filters, it returns all of them.
         For example, if the filter is defined as `Filter1 & (Filter2() | Filter3())`,
         it returns [Filter1(), Filter2(), Filter3()].
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def annotate_qs(self, qs: QuerySet) -> QuerySet:
-        """
-        Annotate the queryset with the necessary annotations for the filter.
-        :param qs: Queryset to annotate
-        :return: Annotated queryset
         """
         raise NotImplementedError
 
@@ -147,15 +177,11 @@ class FilterInterface:
                 self,
                 value: typing.Any,  # noqa: ANN401
                 info: strawberry.Info,
-            ) -> Q:
+            ) -> FilterQ:
                 return self.filter1.get_filter_q(value, info) | self.filter2.get_filter_q(value, info)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter1.get_filters() + self.filter2.get_filters()
-
-            def annotate_qs(self, qs: QuerySet) -> QuerySet:
-                qs = self.filter1.annotate_qs(qs)
-                return self.filter2.annotate_qs(qs)
 
         return OrFilter(self, other)
 
@@ -187,15 +213,11 @@ class FilterInterface:
                 self,
                 value: typing.Any,  # noqa: ANN401
                 info: strawberry.Info,
-            ) -> Q:
+            ) -> FilterQ:
                 return self.filter1.get_filter_q(value, info) & self.filter2.get_filter_q(value, info)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter1.get_filters() + self.filter2.get_filters()
-
-            def annotate_qs(self, qs: QuerySet) -> QuerySet:
-                qs = self.filter1.annotate_qs(qs)
-                return self.filter2.annotate_qs(qs)
 
         return AndFilter(self, other)
 
@@ -225,14 +247,11 @@ class FilterInterface:
                 self,
                 value: typing.Any,  # noqa: ANN401
                 info: strawberry.Info,
-            ) -> Q:
+            ) -> FilterQ:
                 return ~self.filter.get_filter_q(value, info)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter.get_filters()
-
-            def annotate_qs(self, qs: QuerySet) -> QuerySet:
-                return self.filter.annotate_qs(qs)
 
         return NegationFilter(self)
 
@@ -256,29 +275,23 @@ class Filter(FilterInterface):
             ... other filters
     """
 
-    def __init__[QsT: "QuerySet"](
+    def __init__(
         self,
         model_field: typing.LiteralString | None = None,
         lookup: _DBLookupType | None = None,
-        qs_annotation: typing.Callable[[QsT], QsT] | None = None,
         *,
-        is_annotated: bool | None = None,
+        check_field_exists: bool = True,
         prepare_value: typing.Callable[[typing.Any], typing.Any] | None = None,
     ) -> None:
         """
         :param model_field: Name of the model field to filter by. If not specified, it will be inferred from the name.
         :param lookup: Lookup to use for the filter. If not specified, it will be inferred from the field type or name.
-        :param qs_annotation: Queryset annotation method needed for the filter.
-            Example: Filter(..., qs_annotation=models.ProtectiveGearQuerySet.with_stocked_amount_status)
-        :param is_annotated: Whether the field is annotated. If not specified, it will be inferred from 'qs_annotation'.
+        :param check_field_exists: Whether to check if the field exists on the model. Default is True.
         :param prepare_value: Function to prepare the value received from FE before passing it to the filter.
         """
+        self.check_field_exists = check_field_exists
         self._model_field = model_field
         self._lookup = lookup
-        self.qs_annotation = qs_annotation
-        if is_annotated is None and qs_annotation is not None:
-            is_annotated = True
-        self.is_annotated: bool = False if is_annotated is None else is_annotated
         self._prepare_value = prepare_value
 
         # assigned by the filter
@@ -367,7 +380,7 @@ class Filter(FilterInterface):
 
     @property
     def model_field(self) -> typing.LiteralString:
-        """Field name on the Django database model"""
+        """Field name on the model"""
         if self._model_field:
             return self._model_field
         return typing.cast(typing.LiteralString, self.field_name.removesuffix(f"_{self.lookup}"))
@@ -376,18 +389,17 @@ class Filter(FilterInterface):
         self,
         value: typing.Any,  # noqa: ANN401
         info: strawberry.Info,  # noqa: ARG002
-    ) -> Q:
+    ) -> FilterQ:
         """Get the filter expression for the filter."""
         cleaned_value = self.prepare_value(value)
-        return Q(**{f"{self.model_field}__{self.lookup}": cleaned_value})
+        return FilterQ(
+            field=self.model_field,
+            lookup=self.lookup,
+            value=cleaned_value,
+        )
 
     def get_filters(self) -> list[typing.Self]:
         return [self]
-
-    def annotate_qs(self, qs: QuerySet) -> QuerySet:
-        if not self.qs_annotation:
-            return qs
-        return self.qs_annotation(qs)
 
     def prepare_value(self, value: typing.Any) -> typing.Any:  # noqa: ANN401
         if self._prepare_value is None:
@@ -409,12 +421,6 @@ class Filter(FilterInterface):
     @filterset_cls.setter
     def filterset_cls(self, value: type["FilterSet"]) -> None:
         self.__filterset_cls = value
-
-
-class ListFilterset:
-    @abc.abstractmethod
-    def filter[T](self, data: list[T]) -> list[T]:
-        raise NotImplementedError
 
 
 class FilterSet(InputValidator):
@@ -440,9 +446,10 @@ class FilterSet(InputValidator):
     def __hash__(self) -> int:
         return hash(tuple([type(self), *list(self.model_dump().items())]))  # noqa: C409
 
-    def filter[T](self, qs: django.db.models.QuerySet[T], info: strawberry.Info) -> django.db.models.QuerySet[T]:
-        """Perform the filtering on the queryset."""
+    def get_filter_q(self, info: strawberry.Info) -> list[FilterQ]:
+        """Perform the filtering."""
         filters = self.get_filters()
+        query = []
         for field_name, field_filter in filters.items():
             field_filter: FilterInterface
             input_value = getattr(self, field_name)
@@ -451,9 +458,8 @@ class FilterSet(InputValidator):
             # We may need to handle this some way in the future...
             if input_value is None:
                 continue
-            qs = field_filter.annotate_qs(qs)
-            qs = qs.filter(field_filter.get_filter_q(input_value, info))
-        return qs
+            query.append(field_filter.get_filter_q(input_value, info))
+        return query
 
     @classmethod
     def get_filters(cls) -> dict[typing.LiteralString, FilterInterface]:
@@ -466,8 +472,8 @@ class FilterSet(InputValidator):
         return getattr(cls, _FILTERS_FILTERSET_ATTR_NAME)
 
     @classmethod
-    def get_django_model(cls) -> type[django.db.models.Model]:
-        """Django database model for this filterset. It is set by the `model_filter` decorator."""
+    def get_model(cls) -> type:
+        """The model for this filterset. It is set by the `model_filter` decorator."""
         if not hasattr(cls, _FILTER_MODEL_ATTR_NAME):
             raise ImproperlyInitializedFilterSetError(cls)
         return getattr(cls, _FILTER_MODEL_ATTR_NAME)
@@ -492,7 +498,8 @@ class FilterSet(InputValidator):
                     filter_.filterset_cls = cls
                     filter_.field_name = field_name
                     cls._check_lookup_is_resolvable(filter_)
-                    cls._check_field_exists(filter_)
+                    if filter_.check_field_exists:
+                        cls._check_field_exists(filter_)
                 field_filters.append(annotation)
 
             if not field_filters:
@@ -540,10 +547,19 @@ class FilterSet(InputValidator):
     @classmethod
     def _check_field_exists(cls, f: "Filter") -> None:
         """Checks if the field exists on the model."""
-        if f.is_annotated:
-            # The field is annotated -> not a model field -> no need to check if it exists on the model
-            return
-        base_utils.check_django_field_exists(cls.get_django_model(), f.model_field)
+        model_cls = cls.get_model()
+        if issubclass(model_cls, pydantic.BaseModel):
+            return base_utils.check_pydantic_field_exists(model_cls, f.field_name)
+
+        try:
+            import django.db.models
+
+            if issubclass(model_cls, django.db.models.Model):
+                return base_utils.check_django_field_exists(model_cls, f.model_field)
+        except ImportError:
+            pass
+
+        raise TypeError(f"Unexpected model type {model_cls} in {cls.__name__} FilterSet.")
 
     @classmethod
     def _check_field_type(cls, field_annotation: type) -> None:
@@ -571,6 +587,10 @@ class FilterSet(InputValidator):
                 f"`{cls.__name__}` filter annotated as `{field_annotation}` is not supported. "
                 f"We do not support complex union types other than `<type> | None`, i.e., optional field.",
             )
+
+
+class FilterSetInput[T: FilterSet](ValidatedInput[T]):
+    """Input for filtering a list of objects."""
 
 
 # Exceptions

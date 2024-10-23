@@ -1,18 +1,3 @@
-import typing
-
-import strawberry
-from django.db.models import F, QuerySet
-
-from strawberry_vercajk._app_settings import app_settings
-from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection
-
-if typing.TYPE_CHECKING:
-    from strawberry_vercajk._list.page import Page
-
-_MAX_PAGE_NUMBER: int = 999_999_999
-_RETURN_ALL_ITEMS: int = -1  # a flag used to indicate that all items should be returned
-
-
 __all__ = (
     "PageMetadataInterface",
     "PageMetadataType",
@@ -24,6 +9,20 @@ __all__ = (
     "SortFieldInput",
     "SortInput",
 )
+
+import typing
+
+import strawberry
+from django.db.models import F, QuerySet
+
+from strawberry_vercajk._app_settings import app_settings
+from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection, OrderingNullsPosition
+
+if typing.TYPE_CHECKING:
+    from strawberry_vercajk._list.page import Page
+
+_MAX_PAGE_NUMBER: int = 999_999_999
+_RETURN_ALL_ITEMS: int = -1  # a flag used to indicate that all items should be returned
 
 
 @strawberry.type(name="PageInterface", description="List pagination interface.")
@@ -147,11 +146,10 @@ class UnconstrainedPageInput:
 class SortFieldInput[T: FieldSortEnum]:
     field: T
     direction: OrderingDirection = OrderingDirection.ASC
-    nulls_first: bool = False
-    nulls_last: bool = False
+    nulls: OrderingNullsPosition = OrderingNullsPosition.LAST
 
     def __hash__(self) -> int:
-        return hash((self.field, self.direction))
+        return hash((self.field, self.direction, self.nulls))
 
 
 @strawberry.input(
@@ -165,27 +163,16 @@ class SortInput[T: type[FieldSortEnum]]:
     def __hash__(self) -> int:
         return hash(tuple(self.ordering))
 
-    def sort[ItemsT: list | QuerySet](self, items: ItemsT) -> ItemsT:
-        if isinstance(items, QuerySet):
-            return items.order_by(*self.get_sort_q())
-        # TODO - handle nulls first/last
-        return sorted(
-            items,
-            key=lambda item: tuple(
-                _SortReverser(getattr(item, o.field.value))
-                if o.direction.is_desc
-                else getattr(item, o.field.value)
-                for o in self.ordering
-            ),
-        )
+    def sort_django[ItemsT: QuerySet](self, items: ItemsT) -> ItemsT:  # TODO remove this method
+        return items.order_by(*self.get_django_sort_q())
 
-    def get_sort_q(self) -> list[F]:
+    def get_django_sort_q(self) -> list[F]:  # TODO remove this method
         q: list[F] = []
         for o in self.ordering:
             f = F(o.field.value)
-            if o.nulls_first:
+            if o.nulls == "first":
                 f = f.asc(nulls_first=True) if o.direction.is_asc else f.desc(nulls_first=True)
-            elif o.nulls_last:
+            elif o.nulls == "last":
                 f = f.asc(nulls_last=True) if o.direction.is_asc else f.desc(nulls_last=True)
             else:
                 f = f.asc() if o.direction.is_asc else f.desc()

@@ -1,27 +1,25 @@
+__all__ = ("BaseListRespHandler",)
+
+import abc
 import typing
 
-import django.db.models
 import strawberry
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
 from strawberry_vercajk._list.page import Page, Paginator
-from strawberry_vercajk._validation.validator import ValidatedInput
 
 if typing.TYPE_CHECKING:
-    from strawberry_vercajk._list.filter import FilterSet
+    from strawberry_vercajk._list.filter import FilterSet, FilterSetInput
 
 
-__all__ = (
-    "ListRespHandler",
-)
+class ItemsType[T](typing.Protocol):
+    def __getitem__(self, key: slice) -> typing.Iterable[T]: ...
+
+    def count(self) -> int: ...
 
 
-class FilterSetInput[T: "FilterSet"](ValidatedInput[T]):
-    """Input for filtering a list of objects."""
-
-
-class ListRespHandler[T: django.db.models.Model]:
+class BaseListRespHandler[T](abc.ABC):
     """
     Response handler for QuerySet/list of items.
     Groups logic for processing a common list request - handles pagination, sorting, filtering.
@@ -29,14 +27,9 @@ class ListRespHandler[T: django.db.models.Model]:
 
     def __init__(
         self,
-        items: type[T] | typing.Iterable[T],
+        items: ItemsType[T],
         info: strawberry.Info,
     ) -> None:
-        try:
-            if issubclass(items, django.db.models.Model):
-                items = items._meta.default_manager.all()  # noqa: SLF001
-        except TypeError:
-            pass
         self.info = info
         self.items = items
 
@@ -68,7 +61,7 @@ class ListRespHandler[T: django.db.models.Model]:
     @classmethod
     def apply_pagination(
         cls,
-        items: django.db.models.QuerySet[T] | list[T],
+        items: ItemsType[T],
         page: PageInput | None = strawberry.UNSET,
     ) -> Page[T]:
         """
@@ -80,24 +73,23 @@ class ListRespHandler[T: django.db.models.Model]:
             return Paginator[T](items, per_page=app_settings.LIST.DEFAULT_PAGE_SIZE).get_page(1)
         return Paginator[T](items, per_page=page.page_size).get_page(page.page_number)
 
+    @abc.abstractmethod
     def apply_sorting(
         self,
-        items: django.db.models.QuerySet[T] | list[T],
+        items: ItemsType[T],
         sort: SortInput | None = strawberry.UNSET,
-    ) -> django.db.models.QuerySet[T]:
-        if not sort:
-            return items
-        return sort.sort(items)
+    ) -> ItemsType[T]:
+        raise NotImplementedError
 
+    @abc.abstractmethod
     def apply_filters(
         self,
-        items: django.db.models.QuerySet[T] | list[T],
+        items: ItemsType[T],
         filters: "FilterSet|None" = strawberry.UNSET,
-    ) -> django.db.models.QuerySet[T]:
+    ) -> ItemsType[T]:
         """
         Applies the given filters to the given queryset.
         :param items: The items to filter.
         :param filters: The filters to apply.
-        :raises InputExceptionGroup: When the filter input is invalid.
         """
-        return filters.filter(items, self.info)
+        raise NotImplementedError

@@ -16,15 +16,11 @@ __all__ = [
     "FruitVarietyFilterSet",
 ]
 
-from django.db.models import QuerySet, F
+from django.db.models import QuerySet, F, Model, Q, OrderBy
 
 import strawberry_vercajk
 from tests.app import models
 from tests.app.models import FruitPlant
-
-
-def annotate_plant_name(qs: QuerySet[models.Fruit]):
-    return qs.annotate(annot_plant_name=F("plant__name"))
 
 
 @strawberry_vercajk.model_sort_enum(models.FruitEater)
@@ -80,14 +76,6 @@ class FruitFilterSet(strawberry_vercajk.FilterSet):
         ),
     ] = None
     name: typing.Annotated[str | None, strawberry_vercajk.Filter(model_field="name", lookup="icontains")] = None
-    plant_name: typing.Annotated[
-        str | None,
-        strawberry_vercajk.Filter(
-            model_field="annot_plant_name",
-            lookup="icontains",
-            qs_annotation=annotate_plant_name,
-        ),
-    ] = None
 
 
 @strawberry.django.type(models.Fruit)
@@ -109,7 +97,7 @@ class FruitType:
     ) -> strawberry_vercajk.ListInnerType["FruitEaterType"]:
         filters.clean()
         qs = models.FruitEater.objects.filter(favourite_fruit_id=self.pk)
-        handler = strawberry_vercajk.ListRespHandler(qs, info)
+        handler = strawberry_vercajk.DjangoListResponseHandler(qs, info)
         qs = handler.apply_filters(qs, filters.clean_data)
         qs = handler.apply_sorting(qs, sort)
         qs_page = handler.apply_pagination(qs, page)
@@ -135,7 +123,7 @@ class FruitType:
     ) -> strawberry_vercajk.ListInnerType["FruitVarietyType"]:
         filters.clean()
         qs = models.FruitVariety.objects.filter(fruits__id=self.pk)
-        handler = strawberry_vercajk.ListRespHandler(qs, info)
+        handler = strawberry_vercajk.DjangoListResponseHandler(qs, info)
         qs = handler.apply_filters(qs, filters.clean_data)
         qs = handler.apply_sorting(qs, sort)
         qs_page = handler.apply_pagination(qs, page)
@@ -168,7 +156,7 @@ class FruitVarietyType:
     ) -> strawberry_vercajk.ListInnerType["FruitType"]:
         filters.clean()
         qs = models.Fruit.objects.filter(varieties__id=self.pk)
-        handler = strawberry_vercajk.ListRespHandler(qs, info)
+        handler = strawberry_vercajk.DjangoListResponseHandler(qs, info)
         qs = handler.apply_filters(qs, filters.clean_data)
         qs = handler.apply_sorting(qs, sort)
         qs_page = handler.apply_pagination(qs, page)

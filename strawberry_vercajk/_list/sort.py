@@ -1,3 +1,10 @@
+__all__ = [
+    "OrderingDirection",
+    "OrderingNullsPosition",
+    "FieldSortEnum",
+    "model_sort_enum",
+]
+
 import dataclasses
 import enum
 import functools
@@ -10,12 +17,6 @@ from strawberry_vercajk._base import utils as base_utils
 
 if typing.TYPE_CHECKING:
     import django.db.models.Model
-
-__all__ = [
-    "OrderingDirection",
-    "FieldSortEnum",
-    "model_sort_enum",
-]
 
 _SORT_MODEL_ATTR_NAME: typing.LiteralString = "__VERCAJK_MODEL"
 
@@ -43,6 +44,19 @@ def model_sort_enum[T: "FieldSortEnum"](
 class OrderingDirection(enum.Enum):
     ASC = strawberry.enum_value("ASC", description="Ascending order, i.e. 1, 2, 3... or a, b, c...")
     DESC = strawberry.enum_value("DESC", description="Descending order, i.e. 3, 2, 1... or c, b, a...")
+
+    @property
+    def is_asc(self) -> bool:
+        return self == OrderingDirection.ASC
+
+    @property
+    def is_desc(self) -> bool:
+        return self == OrderingDirection.DESC
+
+
+class OrderingNullsPosition(enum.Enum):
+    LAST = strawberry.enum_value("LAST", description="Null values are last in the ordering.")
+    FIRST = strawberry.enum_value("FIRST", description="Null values are first in the ordering.")
 
     @property
     def is_asc(self) -> bool:

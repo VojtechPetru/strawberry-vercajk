@@ -5,10 +5,10 @@ import pytest
 import strawberry
 from django.db.models import QuerySet, F
 
+import strawberry_vercajk
 from strawberry_vercajk import pydantic_to_input_type
 from strawberry_vercajk._list.filter import FilterSet, model_filter, Filter
 from strawberry_vercajk._list.graphql import PageInput, SortInput, ListType
-from strawberry_vercajk._list.processor import ListRespHandler
 from strawberry_vercajk._list.sort import FieldSortEnum, model_sort_enum
 from tests.app import factories, models
 from tests.app.graphql import types
@@ -32,7 +32,7 @@ class Query:
         sort: SortInput[FruitsSortEnum] | None = strawberry.UNSET,
         filters: pydantic_to_input_type(FruitFilterSet) | None = strawberry.UNSET,
     ) -> ListType[types.FruitType]:
-        handler = ListRespHandler[models.Fruit](models.Fruit, info)
+        handler = strawberry_vercajk.DjangoListResponseHandler[models.Fruit](models.Fruit.objects.all(), info)
         resp = handler.process(page=page, sort=sort, filters=filters)
         return resp
 
@@ -154,36 +154,3 @@ def test_filter_by_name() -> None:
     for fruit in fruits:
         if fruit.pk not in fruit_ids_in_resp:
             assert icontains not in fruit.name
-
-
-@pytest.mark.django_db()
-def test_filter_by_annotated_field() -> None:
-    fruits = factories.FruitFactory.create_batch(10)
-
-    icontains = fruits[0].plant.name[:2]
-    q = get_list_query(
-        query_name="fruits",
-        page={
-            "pageNumber": 1,
-            "pageSize": 10
-        },
-        filters={
-            "plantName": icontains,
-        },
-        fields=[
-            "id",
-            "name",
-            "plant { name }",
-        ],
-    )
-    resp = test_schema.execute_sync(q)
-    assert resp.errors is None
-    assert resp.data is not None
-    for fruit in resp.data["fruits"]["items"]:
-        assert icontains in fruit["plant"]["name"]
-
-    # fruits not in response should not contain the icontains string
-    fruit_ids_in_resp = [fruit["id"] for fruit in resp.data["fruits"]["items"]]
-    for fruit in fruits:
-        if fruit.pk not in fruit_ids_in_resp:
-            assert icontains not in fruit.plant.name

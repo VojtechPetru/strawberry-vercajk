@@ -7,6 +7,7 @@ from django.db.models.functions import DenseRank
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
+from strawberry_vercajk._list.django import get_django_filter_q, get_django_order_by
 
 if typing.TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor, ReverseOneToOneDescriptor
@@ -82,15 +83,15 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
 
         qs = model.objects.filter(**{f"{reverse_path}__in": keys})
         if filterset:
-            qs = filterset.filter(qs, info=self.info)
+            qs = qs.filter(get_django_filter_q(filterset.get_filter_q(info=self.info)))
         if sort:
-            qs = sort.sort(qs)
+            qs = qs.order_by(*get_django_order_by(sort))
         if page:
             qs = qs.annotate(
                 rank=Window(
                     expression=DenseRank(),
                     partition_by=[F(reverse_path)],
-                    order_by=sort.get_sort_q() if sort else ["pk"],  # needs to be here, otherwise doesn't work
+                    order_by=get_django_order_by(sort) if sort else ["pk"],  # needs to be here, otherwise doesn't work
                 ),
             ).filter(
                 rank__in=range(

@@ -1,3 +1,8 @@
+__all__ = (
+    "BaseDataLoader",
+    "get_loader_unique_key",
+)
+
 import abc
 import functools
 import typing
@@ -6,11 +11,6 @@ import graphql_sync_dataloaders
 import strawberry
 
 from strawberry_vercajk._dataloaders.core import DataloadersContext
-
-__all__ = (
-    "BaseDataLoader",
-    "get_loader_unique_key",
-)
 
 
 class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):

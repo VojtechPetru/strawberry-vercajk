@@ -1,15 +1,11 @@
 import dataclasses
-import typing
-
-if typing.TYPE_CHECKING:
-    import django.db.models
 
 
 @dataclasses.dataclass
 class ModelFieldDoesNotExistError(Exception):
-    root_model: type["django.db.models.Model"]
+    root_model: type
     full_field_path: str
-    model: type["django.db.models.Model"]
+    model: type
     field: str
 
     def __str__(self) -> str:
