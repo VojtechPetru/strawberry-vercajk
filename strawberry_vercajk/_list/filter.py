@@ -21,7 +21,6 @@ import strawberry
 from strawberry.types.field import StrawberryField
 
 from strawberry_vercajk._base import utils as base_utils
-from strawberry_vercajk._base.types import UNSET
 from strawberry_vercajk._validation.validator import InputValidator, ValidatedInput
 
 # Add more when needed. See django.db.models.lookups or django.db.models.<FieldClass>.get_lookups().
@@ -62,9 +61,9 @@ _FILTERS_FILTERSET_ATTR_NAME: typing.LiteralString = "__VERCAJK_FILTERS"
 
 @dataclasses.dataclass
 class FilterQ:
-    field: str = UNSET
-    lookup: _DBLookupType = UNSET
-    value: str | int | float | Decimal | date | datetime | None = UNSET
+    field: str | None = None
+    lookup: _DBLookupType | None = None
+    value: str | int | float | Decimal | date | datetime | None = None
     _left: typing.Self | None = None
     _right: typing.Self | None = None
     _operator: typing.Literal["AND", "OR", "NOT"] | None = None
@@ -77,6 +76,11 @@ class FilterQ:
 
     def __invert__(self) -> typing.Self:
         return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
+
+    @property
+    def is_noop(self) -> bool:
+        """No operation should be performed."""
+        return self.field is None
 
     @property
     def left(self) -> typing.Self:
@@ -446,10 +450,10 @@ class FilterSet(InputValidator):
     def __hash__(self) -> int:
         return hash(tuple([type(self), *list(self.model_dump().items())]))  # noqa: C409
 
-    def get_filter_q(self, info: strawberry.Info) -> list[FilterQ]:
+    def get_filter_q(self, info: strawberry.Info) -> FilterQ:
         """Perform the filtering."""
         filters = self.get_filters()
-        query = []
+        fq = FilterQ()
         for field_name, field_filter in filters.items():
             field_filter: FilterInterface
             input_value = getattr(self, field_name)
@@ -458,8 +462,8 @@ class FilterSet(InputValidator):
             # We may need to handle this some way in the future...
             if input_value is None:
                 continue
-            query.append(field_filter.get_filter_q(input_value, info))
-        return query
+            fq &= field_filter.get_filter_q(input_value, info)
+        return fq
 
     @classmethod
     def get_filters(cls) -> dict[typing.LiteralString, FilterInterface]:

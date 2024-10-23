@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
     from strawberry_vercajk import FilterQ, FilterSet, SortInput
 
 
-def get_django_filter_q(filters: list["FilterQ"], /) -> django.db.models.Q:
+def get_django_filter_q(filter_q: "FilterQ", /) -> django.db.models.Q:
     from strawberry_vercajk import FilterQ
 
     def _evaluate_filter(fq: "FilterQ") -> django.db.models.Q:
@@ -20,12 +20,11 @@ def get_django_filter_q(filters: list["FilterQ"], /) -> django.db.models.Q:
         if fq.is_not:
             q = FilterQ(field=fq.field, lookup=fq.lookup, value=fq.value)
             return ~_evaluate_filter(q)
+        if fq.is_noop:
+            return django.db.models.Q()
         return django.db.models.Q(**{f"{fq.field}__{fq.lookup}": fq.value})
 
-    q = django.db.models.Q()
-    for filter_ in filters:
-        q &= _evaluate_filter(filter_)
-    return q
+    return _evaluate_filter(filter_q)
 
 
 def get_django_order_by(sort: "SortInput", /) -> list[django.db.models.OrderBy]:

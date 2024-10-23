@@ -154,3 +154,30 @@ def test_filter_by_name() -> None:
     for fruit in fruits:
         if fruit.pk not in fruit_ids_in_resp:
             assert icontains not in fruit.name
+
+
+
+@pytest.mark.django_db()
+def test_filter_by_multiple_fields() -> None:
+    fruits = factories.FruitFactory.create_batch(10)
+    icontains = fruits[0].name[:3]
+    q = get_list_query(
+        query_name="fruits",
+        page={
+            "pageNumber": 1,
+            "pageSize": 10
+        },
+        filters={
+            "name": icontains,
+            "ids": [fruits[0].pk],
+        },
+        fields=[
+            "id",
+            "name",
+        ],
+    )
+    resp = test_schema.execute_sync(q)
+    assert resp.errors is None
+    assert resp.data is not None
+    assert len(resp.data["fruits"]["items"]) == 1
+    assert resp.data["fruits"]["items"][0]["id"] == fruits[0].pk
