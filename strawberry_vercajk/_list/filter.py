@@ -77,6 +77,9 @@ class FilterQ:
     def __invert__(self) -> typing.Self:
         return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
 
+    def __bool__(self) -> bool:
+        return not self.is_noop
+
     @property
     def is_noop(self) -> bool:
         """No operation should be performed."""
