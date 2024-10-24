@@ -19,13 +19,10 @@ class FieldConstraints:
     max_digits: int | None = None
     decimal_places: int | None = None
     pattern: str | None = None
-    multiple_of: int | None = None
+    multiple_of: float | None = None
 
     def __bool__(self) -> bool:
-        return any(
-            getattr(self, field.name) is not None
-            for field in dataclasses.fields(self)
-        )
+        return any(getattr(self, field.name) is not None for field in dataclasses.fields(self))
 
 
 @strawberry.schema_directive(locations=[Location.INPUT_FIELD_DEFINITION], repeatable=True, name="FieldConstraints")
