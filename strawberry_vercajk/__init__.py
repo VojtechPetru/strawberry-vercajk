@@ -8,7 +8,7 @@ from ._dataloaders.reverse_fk_dataloader import ReverseFKDataLoader, ReverseFKDa
 from ._dataloaders.m2m_dataloader import M2MDataLoader, M2MDataLoaderFactory
 from ._dataloaders.field import auto_dataloader_field
 
-from ._list.filter import FilterSet, Filter, FilterQ, model_filter
+from ._list.filter import FilterSet, Filter, FilterQ, model_filter, FilterSetInput
 from ._list.graphql import (
     PageInnerMetadataType,
     PageMetadataType,

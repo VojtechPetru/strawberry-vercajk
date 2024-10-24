@@ -18,6 +18,7 @@ from strawberry_vercajk._scalars import IntStr
 class ConstraintDataType(enum.Enum):
     STRING = "string"
     INTEGER = "integer"
+    FLOAT = "float"
 
 
 class ErrorConstraintChoices(enum.Enum):
@@ -37,13 +38,17 @@ class ErrorConstraintChoices(enum.Enum):
             ErrorConstraintChoices.PATTERN,
         }:
             return ConstraintDataType.STRING
+        if self in {
+            ErrorConstraintChoices.MULTIPLE_OF,
+        }:
+            return ConstraintDataType.FLOAT
         return ConstraintDataType.INTEGER
 
 
 @strawberry.type
 class ErrorConstraintType:
     code: ErrorConstraintChoices
-    value: IntStr
+    value: str
     data_type: ConstraintDataType
 
 

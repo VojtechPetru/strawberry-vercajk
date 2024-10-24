@@ -41,8 +41,8 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
     __strawberry_definition__: typing.ClassVar["strawberry.types.base.StrawberryObjectDefinition"]
 
     def clean(
-            self,
-            context: dict | None = None,
+        self,
+        context: dict | None = None,
     ) -> list["gql_types.ErrorInterface"]:
         """
         Cleans (validates) the input data and returns the (potential) errors.
@@ -136,7 +136,7 @@ def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInter
             constraints.append(
                 gql_types.ErrorConstraintType(
                     code=ctx_code,
-                    value=ctx_value,
+                    value=str(ctx_value),
                     data_type=ctx_code.get_data_type(),
                 ),
             )
@@ -145,7 +145,7 @@ def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInter
             gql_types.ErrorType(
                 code=error["type"],
                 message=error["msg"],
-                location=[to_camel_case(l) if isinstance(l, str) else l for l in loc], # noqa: E741
+                location=[to_camel_case(l) if isinstance(l, str) else l for l in loc],  # noqa: E741
                 constraints=constraints,
             ),
         )
