@@ -10,7 +10,7 @@ import typing
 import graphql_sync_dataloaders
 import strawberry
 
-from strawberry_vercajk._dataloaders.core import DataloadersContext
+from strawberry_vercajk._dataloaders.core import InfoDataloadersContextMixin
 
 
 class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
@@ -27,7 +27,7 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
 
     def __new__(
         cls,
-        info: strawberry.Info[DataloadersContext],
+        info: strawberry.Info[InfoDataloadersContextMixin],
         **kwargs,
     ) -> "BaseDataLoader":
         """
@@ -36,10 +36,10 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
         This makes the dataloader "semi-singleton" in the sense that they are a singleton
         in the context of each request.
         """
-        if not isinstance(info.context, DataloadersContext):
+        if not isinstance(info.context, InfoDataloadersContextMixin):
             raise TypeError(
                 # TODO write setup guide (custom Info class with overridden context property to `schema`)
-                "strawberry.Info.context must be an instance of `strawberry_vercajk.DataloadersContext`.",
+                "strawberry.Info.context must be an instance of `strawberry_vercajk.InfoDataloadersContextMixin`.",
             )
         loader_key = get_loader_unique_key(cls, cls.Config)  # ensure the loader has a unique key
         if loader_key not in info.context.dataloaders:
@@ -47,7 +47,7 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
             info.context.dataloaders[loader_key] = dl
         return info.context.dataloaders[loader_key]
 
-    def __init__(self, info: strawberry.Info[DataloadersContext]) -> None:
+    def __init__(self, info: strawberry.Info[InfoDataloadersContextMixin]) -> None:
         if self._instance_cache is None:
             self._instance_cache = info.context.dataloaders[self.unique_key]
             self.info = info

@@ -2,17 +2,26 @@ import dataclasses
 import typing
 
 import strawberry
-from strawberry.django.context import StrawberryDjangoContext
 
 if typing.TYPE_CHECKING:
     from strawberry_vercajk._dataloaders import BaseDataLoader
 
 
 __all__ = [
-    "DataloadersContext",
+    "InfoDataloadersContextMixin",
 ]
 
+
 @dataclasses.dataclass
-class DataloadersContext(StrawberryDjangoContext):
-    dataloaders: dict[type["BaseDataLoader"], "BaseDataLoader"] = strawberry.field(default_factory=dict)
-    ephemeral_dataloaders: dict[typing.Hashable, "BaseDataLoader"] = strawberry.field(default_factory=dict)
+class InfoDataloadersContextMixin:
+    """
+    A mixin to be used with a `strawberry.django.context.StrawberryDjangoContext` to store dataloaders.
+    Usage:
+    >>> from strawberry.django.context import StrawberryDjangoContext
+    ...
+    ... @dataclasses.dataclass
+    ... class Context(InfoDataloadersContextMixin, StrawberryDjangoContext):
+    ...     pass
+    """
+
+    dataloaders: dict[int, "BaseDataLoader"] = strawberry.field(default_factory=dict)  # key = loader unique key

@@ -8,7 +8,7 @@ import pydbull
 import strawberry
 from strawberry.experimental.pydantic.conversion import convert_strawberry_class_to_pydantic_model
 
-from strawberry_vercajk._validation import directives
+from strawberry_vercajk._validation import constants, directives
 from strawberry_vercajk._validation.validator import ValidatedInput
 
 __all__ = [
@@ -82,6 +82,7 @@ class InputFactory:
             strawberry.experimental.pydantic.input(input_validator, name=name)(input_cls),
         )
         gql_input.to_pydantic = cls.to_pydantic
+        setattr(gql_input, constants.INPUT_VALIDATOR_ATTR_NAME, input_validator)
         cls._REGISTRY[input_validator] = gql_input
         return gql_input
 
@@ -124,11 +125,11 @@ class InputFactory:
 
     @classmethod
     def extract_constrains(
-            cls,
-            input_validator: pydantic.BaseModel,
-            field_info: "pydantic.fields.FieldInfo",
+        cls,
+        input_validator: pydantic.BaseModel,
+        field_info: "pydantic.fields.FieldInfo",
     ) -> directives.FieldConstraintsDirective:
-        def clean_value(value: typing.Any) -> typing.Any: # noqa: ANN401
+        def clean_value(value: typing.Any) -> typing.Any:  # noqa: ANN401
             if value is pydantic_core.PydanticUndefined:
                 return None
             if isinstance(value, int):
@@ -150,7 +151,11 @@ class InputFactory:
         )
 
     @staticmethod
-    def to_pydantic(self: "ValidatedInput", is_inner: bool = True, **kwargs: typing.Any) -> dict: # noqa: ANN401 PLW0211
+    def to_pydantic(
+        self: "ValidatedInput",  # noqa: PLW0211
+        is_inner: bool = True,
+        **kwargs,
+    ) -> dict | pydantic.BaseModel:
         """
         Overrides the default strawberry `to_pydantic` method (see `to_pydantic_default` in strawberry).
         The reason for this is that we need to validate the whole pydantic object at once.
@@ -169,5 +174,5 @@ class InputFactory:
         }
         instance_kwargs.update(kwargs)
         if not is_inner:
-            return self._pydantic_type(**instance_kwargs)
+            return self.get_validator()(**instance_kwargs)
         return instance_kwargs

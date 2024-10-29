@@ -7,7 +7,7 @@ import pydantic
 from strawberry.utils.str_converters import to_camel_case
 
 from strawberry_vercajk._base.types import UNSET
-from strawberry_vercajk._validation import gql_types
+from strawberry_vercajk._validation import constants, gql_types
 
 if typing.TYPE_CHECKING:
     import strawberry.types.base
@@ -37,8 +37,8 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
 
     __clean_data: CleanDataType | None = UNSET
     __errors: list["gql_types.ErrorInterface"] | None = UNSET
-    _pydantic_type: type[CleanDataType]
     __strawberry_definition__: typing.ClassVar["strawberry.types.base.StrawberryObjectDefinition"]
+    # _pydantic_type: type[CleanDataType]  # set by strawberry - use `get_validator` method instead
 
     def clean(
         self,
@@ -90,6 +90,16 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
         if self.__errors is not UNSET:
             raise AttributeError("Cannot re-set errors attribute - it is read-only.")
         self.__errors = value
+
+    @classmethod
+    def get_validator(cls) -> type[CleanDataType]:
+        try:
+            return getattr(cls, constants.INPUT_VALIDATOR_ATTR_NAME)
+        except AttributeError as e:
+            raise AttributeError(
+                f"Cannot find validator on {cls.__name__}. "
+                f"Make sure to use `strawberry_vercajk.pydantic_to_input_type` to create the input type.",
+            ) from e
 
 
 class InputValidator(pydantic.BaseModel):

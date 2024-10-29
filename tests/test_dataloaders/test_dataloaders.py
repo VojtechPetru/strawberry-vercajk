@@ -6,7 +6,7 @@ import pytest
 import strawberry
 import strawberry_vercajk
 from strawberry_vercajk._dataloaders import PKDataLoaderFactory
-from strawberry_vercajk._dataloaders.core import DataloadersContext
+from strawberry_vercajk._dataloaders.core import InfoDataloadersContextMixin
 
 from tests.app import models, factories
 from tests.app.graphql import types
@@ -150,10 +150,10 @@ def get_query(
 
 def run_query(
         query: str,
-        context: DataloadersContext | None = None,
+        context: InfoDataloadersContextMixin | None = None,
 ):
     if context is None:
-        context = DataloadersContext(request=None, response=None)
+        context = InfoDataloadersContextMixin()
     return test_schema.execute_sync(query, context_value=context)
 
 def check_response_data(resp: "ExecutionResult", fruits: typing.Iterable[models.Fruit]) -> None:

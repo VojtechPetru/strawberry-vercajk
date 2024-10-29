@@ -367,7 +367,7 @@ def test_nested_validator_field_invalid() -> None:
     assert resp.data["testMutation"]["errors"][0]["code"] == "string_too_long"
     assert resp.data["testMutation"]["errors"][0]["message"] == "String should have at most 5 characters"
     assert resp.data["testMutation"]["errors"][0]["location"] == ["nestedField", "field"]
-    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": 5, "dataType": "INTEGER"}]
+    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": "5", "dataType": "INTEGER"}]
 
 
 def test_nested_validator_list_field_invalid() -> None:
@@ -384,7 +384,7 @@ def test_nested_validator_list_field_invalid() -> None:
     assert resp.data["testMutation"]["errors"][0]["code"] == "string_too_long"
     assert resp.data["testMutation"]["errors"][0]["message"] == "String should have at most 5 characters"
     assert resp.data["testMutation"]["errors"][0]["location"] == ["nestedFieldList", 1, "field"]
-    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": 5, "dataType": "INTEGER"}]
+    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": "5", "dataType": "INTEGER"}]
 
 
 def test_multiple_nested_fields_invalid() -> None:
@@ -402,11 +402,11 @@ def test_multiple_nested_fields_invalid() -> None:
     assert resp.data["testMutation"]["errors"][0]["code"] == "string_too_long"
     assert resp.data["testMutation"]["errors"][0]["message"] == "String should have at most 5 characters"
     assert resp.data["testMutation"]["errors"][0]["location"] == ["nestedField", "field"]
-    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": 5, "dataType": "INTEGER"}]
+    assert resp.data["testMutation"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": "5", "dataType": "INTEGER"}]
     assert resp.data["testMutation"]["errors"][1]["code"] == "string_too_long"
     assert resp.data["testMutation"]["errors"][1]["message"] == "String should have at most 5 characters"
     assert resp.data["testMutation"]["errors"][1]["location"] == ["nestedFieldList", 1, "field"]
-    assert resp.data["testMutation"]["errors"][1]["constraints"] == [{"code": "MAX_LENGTH", "value": 5, "dataType": "INTEGER"}]
+    assert resp.data["testMutation"]["errors"][1]["constraints"] == [{"code": "MAX_LENGTH", "value": "5", "dataType": "INTEGER"}]
 
 
 def test_user_create_ok() -> None:
@@ -471,4 +471,4 @@ def test_user_create_invalid() -> None:
     assert resp.data["userCreate"]["errors"][0]["code"] == "string_too_long"
     assert resp.data["userCreate"]["errors"][0]["message"] == "String should have at most 20 characters"
     assert resp.data["userCreate"]["errors"][0]["location"] == ["username"]
-    assert resp.data["userCreate"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": 20, "dataType": "INTEGER"}]
+    assert resp.data["userCreate"]["errors"][0]["constraints"] == [{"code": "MAX_LENGTH", "value": "20", "dataType": "INTEGER"}]

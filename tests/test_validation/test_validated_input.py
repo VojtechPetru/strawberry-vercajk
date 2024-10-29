@@ -52,7 +52,7 @@ def test_validated_input_with_constraints_error() -> None:
     assert errors[0].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.MAX_LENGTH,
-            value=2,
+            value="2",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
@@ -62,7 +62,7 @@ def test_validated_input_with_constraints_error() -> None:
     assert errors[1].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.LT,
-            value=10,
+            value="10",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
@@ -108,7 +108,7 @@ def test_validated_input_with_nested_error() -> None:
     assert errors[0].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.MAX_LENGTH,
-            value=2,
+            value="2",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
@@ -147,7 +147,7 @@ def test_validated_input_with_list_error() -> None:
     assert errors[0].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.MIN_LENGTH,
-            value=2,
+            value="2",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
@@ -179,7 +179,7 @@ def test_multiple_nested_inputs_with_errors() -> None:
     assert errors[0].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.MAX_LENGTH,
-            value=2,
+            value="2",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
@@ -190,7 +190,7 @@ def test_multiple_nested_inputs_with_errors() -> None:
     assert errors[1].constraints == [
         strawberry_vercajk.ErrorConstraintType(
             code=strawberry_vercajk.ErrorConstraintChoices.LT,
-            value=10,
+            value="10",
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]

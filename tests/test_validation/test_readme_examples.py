@@ -205,7 +205,7 @@ def test_user_create_mutation_invalid_user_name() -> None:
                     "constraints": [
                         {
                             "code": "MIN_LENGTH",
-                            "value": 5,
+                            "value": "5",
                             "dataType": "INTEGER",
                         },
                     ],
@@ -249,7 +249,7 @@ def test_user_create_mutation_invalid_address_city() -> None:
                     "constraints": [
                         {
                             "code": "MIN_LENGTH",
-                            "value": 5,
+                            "value": "5",
                             "dataType": "INTEGER",
                         },
                     ],
