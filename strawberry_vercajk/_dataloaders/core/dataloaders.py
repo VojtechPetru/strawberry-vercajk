@@ -27,7 +27,7 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
 
     def __new__(
         cls,
-        info: strawberry.Info[InfoDataloadersContextMixin],
+        info: strawberry.Info,
         **kwargs,
     ) -> "BaseDataLoader":
         """
@@ -47,7 +47,7 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
             info.context.dataloaders[loader_key] = dl
         return info.context.dataloaders[loader_key]
 
-    def __init__(self, info: strawberry.Info[InfoDataloadersContextMixin]) -> None:
+    def __init__(self, info: strawberry.Info) -> None:
         if self._instance_cache is None:
             self._instance_cache = info.context.dataloaders[self.unique_key]
             self.info = info

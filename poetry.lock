@@ -378,6 +378,17 @@ files = [
 ]
 
 [[package]]
+name = "sqids"
+version = "0.5.0"
+description = "Generate YouTube-like ids from numbers."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "sqids-0.5.0-py3-none-any.whl", hash = "sha256:4c2d1eabf4721e6e18001b1ff2bc0b30d059447ef96f1e1d1fb7f56841814154"},
+    {file = "sqids-0.5.0.tar.gz", hash = "sha256:647798e7d5bfeb236e7ac4709cfd4cd808630a6c50f80205df17b4c93e560140"},
+]
+
+[[package]]
 name = "sqlparse"
 version = "0.5.1"
 description = "A non-validating SQL parser."
@@ -471,4 +482,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "046da1370b1c36e1e458883ff88e73f02d6b8eee298451870ebe707dabc2aae1"
+content-hash = "6bc08a8486831fe6bc82491b4b49ab9a4fc653c2e43eeec7e3a6184f3d358583"
