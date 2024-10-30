@@ -1,3 +1,4 @@
+import enum
 import typing
 
 import pytest
@@ -8,26 +9,26 @@ from strawberry_vercajk._list.filter import (
     FilterFieldNotAnInstanceError, FilterFieldLookupAmbiguousError, MissingFilterAnnotationError,
     MoreThanOneFilterAnnotationError,
 )
-from strawberry_vercajk._list.sort import model_sort_enum, FieldSortEnum
+from strawberry_vercajk._list.sort import model_sort_enum
 from tests.app import models
 
 
 def test_sort_enum_ok() -> None:
     @model_sort_enum(models.Fruit)
-    class FruitSortEnum(FieldSortEnum):
+    class FruitSortEnum(enum.StrEnum):
         NAME = "name"
 
 
 def test_sort_enum_with_existing_related_model_field_ok() -> None:
     @model_sort_enum(models.FruitEater)
-    class FruitEaterSortEnum(FieldSortEnum):
+    class FruitEaterSortEnum(enum.StrEnum):
         PLANT_NAME = "favourite_fruit__plant__name"
 
 
 def test_sort_enum_with_nonexistent_field_raises_error() -> None:
     with pytest.raises(ModelFieldDoesNotExistError) as exc_info:
         @model_sort_enum(models.Fruit)
-        class FruitSortEnum(FieldSortEnum):
+        class FruitSortEnum(enum.StrEnum):
             NAME = "nonexistent_field"
 
     assert exc_info.value.field == "nonexistent_field"
@@ -40,7 +41,7 @@ def test_sort_enum_with_nonexistent_field_raises_error() -> None:
 def test_sort_enum_with_nonexistent_related_model_field_raises_error() -> None:
     with pytest.raises(ModelFieldDoesNotExistError) as exc_info:
         @model_sort_enum(models.FruitEater)
-        class FruitEaterSortEnum(FieldSortEnum):
+        class FruitEaterSortEnum(enum.StrEnum):
             PLANT_NAME = "favourite_fruit__plant__non_existent"
 
     assert exc_info.value.field == "non_existent"

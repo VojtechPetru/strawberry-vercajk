@@ -23,7 +23,7 @@ from ._list.graphql import (
 )
 from ._list.page import Paginator, Page
 from ._list.processor import BaseListRespHandler
-from ._list.sort import OrderingDirection, FieldSortEnum, OrderingNullsPosition, model_sort_enum
+from ._list.sort import OrderingDirection, OrderingNullsPosition, model_sort_enum
 from ._list.django import DjangoListResponseHandler
 
 from ._validation.gql_types import (

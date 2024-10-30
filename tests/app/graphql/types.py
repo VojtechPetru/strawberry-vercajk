@@ -1,3 +1,4 @@
+import enum
 import typing
 
 import pydantic
@@ -24,14 +25,14 @@ from tests.app.models import FruitPlant
 
 
 @strawberry_vercajk.model_sort_enum(models.FruitEater)
-class FruitEaterSortEnum(strawberry_vercajk.FieldSortEnum):
+class FruitEaterSortEnum(enum.StrEnum):
     ID = "id"
     NAME = "name"
     FAVOURITE_FRUIT_NAME = "favourite_fruit__name"
 
 
 @strawberry_vercajk.model_sort_enum(models.Fruit)
-class FruitSortEnum(strawberry_vercajk.FieldSortEnum):
+class FruitSortEnum(enum.StrEnum):
     ID = "id"
     NAME = "name"
     COLOR_NAME = "color__name"
@@ -39,7 +40,7 @@ class FruitSortEnum(strawberry_vercajk.FieldSortEnum):
 
 
 @strawberry_vercajk.model_sort_enum(models.FruitVariety)
-class FruitVarietySortEnum(strawberry_vercajk.FieldSortEnum):
+class FruitVarietySortEnum(enum.StrEnum):
     ID = "id"
     NAME = "name"
 

@@ -5,7 +5,7 @@ import strawberry
 import strawberry.django
 
 from strawberry_vercajk import (
-    PageInput, model_sort_enum, SortInput, model_filter, FilterSet, Filter, FieldSortEnum,
+    PageInput, model_sort_enum, SortInput, model_filter, FilterSet, Filter,
     pydantic_to_input_type,
 )
 from strawberry_vercajk._dataloaders import PKDataLoader, ReverseFKDataLoader, M2MDataLoader

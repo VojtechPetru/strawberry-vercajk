@@ -1,3 +1,4 @@
+import enum
 import typing
 
 import pydantic
@@ -9,7 +10,7 @@ import strawberry_vercajk
 from strawberry_vercajk import pydantic_to_input_type
 from strawberry_vercajk._list.filter import FilterSet, model_filter, Filter
 from strawberry_vercajk._list.graphql import PageInput, SortInput, ListType
-from strawberry_vercajk._list.sort import FieldSortEnum, model_sort_enum
+from strawberry_vercajk._list.sort import model_sort_enum
 from tests.app import factories, models
 from tests.app.graphql import types
 from tests.app.graphql.types import FruitFilterSet
@@ -17,7 +18,7 @@ from tests.base import get_list_query, ListQueryKwargs
 
 
 @model_sort_enum(models.Fruit)
-class FruitsSortEnum(FieldSortEnum):
+class FruitsSortEnum(enum.StrEnum):
     ID = "id"
     NAME = "name"
 

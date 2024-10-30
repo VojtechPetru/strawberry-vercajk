@@ -10,13 +10,14 @@ __all__ = (
     "SortInput",
 )
 
+import enum
 import typing
 
 import strawberry
 from django.db.models import F, QuerySet
 
 from strawberry_vercajk._app_settings import app_settings
-from strawberry_vercajk._list.sort import FieldSortEnum, OrderingDirection, OrderingNullsPosition
+from strawberry_vercajk._list.sort import OrderingDirection, OrderingNullsPosition
 
 if typing.TYPE_CHECKING:
     from strawberry_vercajk._list.page import Page
@@ -143,7 +144,7 @@ class UnconstrainedPageInput:
 
 
 @strawberry.input
-class SortFieldInput[T: FieldSortEnum]:
+class SortFieldInput[T: enum.StrEnum]:
     field: T
     direction: OrderingDirection = OrderingDirection.ASC
     nulls: OrderingNullsPosition = OrderingNullsPosition.LAST
@@ -157,7 +158,7 @@ class SortFieldInput[T: FieldSortEnum]:
     "The order ordering is important. "
     "The first ordering is the primary ordering, the second is the secondary ordering, etc.",
 )
-class SortInput[T: type[FieldSortEnum]]:
+class SortInput[T: type[enum.StrEnum]]:
     ordering: list[SortFieldInput[T]]
 
     def __hash__(self) -> int:

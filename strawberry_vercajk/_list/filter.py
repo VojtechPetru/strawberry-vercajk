@@ -556,7 +556,7 @@ class FilterSet(InputValidator):
         """Checks if the field exists on the model."""
         model_cls = cls.get_model()
         if issubclass(model_cls, pydantic.BaseModel):
-            return base_utils.check_pydantic_field_exists(model_cls, f.field_name)
+            return base_utils.check_pydantic_field_exists(model_cls, f.model_field)
 
         try:
             import django.db.models
