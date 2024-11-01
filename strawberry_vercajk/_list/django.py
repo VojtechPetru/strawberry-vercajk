@@ -20,7 +20,7 @@ def get_django_filter_q(filter_q: "FilterQ", /) -> django.db.models.Q:
         if fq.is_not:
             q = FilterQ(field=fq.field, lookup=fq.lookup, value=fq.value)
             return ~_evaluate_filter(q)
-        if not fq:
+        if fq.is_noop:
             return django.db.models.Q()
         return django.db.models.Q(**{f"{fq.field}__{fq.lookup}": fq.value})
 
