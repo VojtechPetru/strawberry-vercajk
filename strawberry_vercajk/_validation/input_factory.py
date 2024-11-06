@@ -22,6 +22,10 @@ DIRECTIVE_MAX: int = 2_147_483_647
 DIRECTIVE_MIN: int = -DIRECTIVE_MAX
 
 
+def _none_to_empty_string(value: typing.Any) -> typing.Any:  # noqa: ANN401
+    return "" if value is None else value
+
+
 class InputFactory:
     """
     Factory for creating GraphQL input type from InputValidator type
@@ -55,8 +59,12 @@ class InputFactory:
                 cls.make(nested_input_validator)
 
         input_fields: list[tuple[str, type, strawberry.field]] = []
+        field_convertors_any: bool = False
         for field_name, field_info in fields.items():
             field_constraints_directive = cls.extract_constrains(input_validator, field_info)
+            field_type, field_convertors = cls._get_field_annotation(field_info)
+            field_convertors_any = field_convertors_any or field_convertors
+            input_validator.model_fields[field_name].metadata.extend(field_convertors)
             if field_constraints_directive:
                 strawberry_field = strawberry.field(
                     directives=[
@@ -68,8 +76,10 @@ class InputFactory:
                 strawberry_field = strawberry.field(
                     deprecation_reason=field_info.deprecated,
                 )
-            input_fields.append((field_name, strawberry.auto, strawberry_field))
-
+            input_fields.append((field_name, field_type, strawberry_field))
+        if field_convertors_any:
+            # If any field has a new convertor, we need to rebuild the model.
+            input_validator.model_rebuild(force=True)
         input_cls = type(
             name,
             (ValidatedInput,),
@@ -85,6 +95,36 @@ class InputFactory:
         setattr(gql_input, constants.INPUT_VALIDATOR_ATTR_NAME, input_validator)
         cls._REGISTRY[input_validator] = gql_input
         return gql_input
+
+    @classmethod
+    def _get_field_annotation(
+        cls,
+        field_info: "pydantic.fields.FieldInfo",
+    ) -> tuple[type, list[pydantic.BeforeValidator | pydantic.AfterValidator]]:
+        """
+        Get the annotation for a strawberry field.
+        If the new annotation requires a before/after validation convertor, it is returned as well.
+        """
+        if typing.get_origin(field_info.annotation) is not typing.Union:
+            return strawberry.auto, []
+
+        ret_types: list[type] = []
+        convertors: list[pydantic.BeforeValidator | pydantic.AfterValidator] = []
+        is_auto: bool = True  # whether "strawberry.auto" should be used
+        for internal_type in typing.get_args(field_info.annotation):
+            if cls._is_empty_str_literal(internal_type):
+                # Replace typing.Literal[""] with NoneType
+                #  - let the field appear as optional in the gql schema
+                #  - convert None back to empty string when data is received
+                is_auto = False
+                ret_types.append(types.NoneType)
+                convertors.append(pydantic.BeforeValidator(_none_to_empty_string))
+            else:
+                ret_types.append(internal_type)
+
+        if is_auto:
+            return strawberry.auto, []
+        return typing.Union[*ret_types], convertors
 
     @classmethod
     def __get_input_validator(cls, annotation: type) -> type[pydantic.BaseModel] | None:
@@ -122,6 +162,14 @@ class InputFactory:
         if issubclass(from_type, type_):  # may raise TypeError
             return from_type
         raise TypeError
+
+    @staticmethod
+    def _is_empty_str_literal(t: type, /) -> bool:
+        if t is typing.Literal[""]:
+            return True
+        if typing.get_origin(t) is typing.Annotated:
+            return typing.get_args(t)[0] is typing.Literal[""]
+        return False
 
     @classmethod
     def extract_constrains(

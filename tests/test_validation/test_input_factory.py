@@ -2,7 +2,9 @@ import typing
 from decimal import Decimal
 
 import pydantic
+import pydantic_core
 from strawberry.schema_directive import StrawberrySchemaDirective, Location
+from strawberry.types.base import StrawberryOptional
 
 from strawberry_vercajk import InputFactory, FieldConstraintsDirective
 
@@ -216,3 +218,35 @@ def test_input_factory_field_constraints_directive_values() -> None:
     assert cash_directive.max_digits == 5
     assert cash_directive.decimal_places == 2
     assert cash_directive.multiple_of == 0.5
+
+
+def _none_to_empty_str(v: typing.Any) -> str:
+    if v is None:
+        return ""
+    return v
+
+def test_input_factory_converts_empty_str_literal_union_to_optional() -> None:
+    class Model(pydantic.BaseModel):
+        website: pydantic.HttpUrl | typing.Literal[""] = ""
+
+    gql_input_cls = InputFactory.make(Model)
+    definition = gql_input_cls.__strawberry_definition__
+    assert len(definition.fields) == 1
+
+    # Check the graphql input field is marked as optional
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+
+    # check None value is converted to empty string
+    gql_input = gql_input_cls(website=None)
+    gql_input.clean()
+    assert gql_input.clean_data.website == ""
+
+    # check unset value is the default empty string
+    gql_input = gql_input_cls()
+    gql_input.clean()
+    assert gql_input.clean_data.website == ""
+
+    # check url value
+    gql_input = gql_input_cls(website="https://example.com")
+    gql_input.clean()
+    assert gql_input.clean_data.website == pydantic_core.Url("https://example.com")
