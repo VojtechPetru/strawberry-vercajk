@@ -105,9 +105,12 @@ class InputFactory:
         Get the annotation for a strawberry field.
         If the new annotation requires a before/after validation convertor, it is returned as well.
         """
+        if field_info.annotation is str and not field_info.is_required():
+            # Mark string fields which have a default value as not required.
+            return typing.Optional[field_info.annotation], [pydantic.BeforeValidator(_none_to_empty_string)]  # noqa: UP007
+
         if typing.get_origin(field_info.annotation) is not typing.Union:
             return strawberry.auto, []
-
         ret_types: list[type] = []
         convertors: list[pydantic.BeforeValidator | pydantic.AfterValidator] = []
         is_auto: bool = True  # whether "strawberry.auto" should be used

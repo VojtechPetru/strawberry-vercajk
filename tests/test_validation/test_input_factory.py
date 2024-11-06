@@ -228,25 +228,71 @@ def _none_to_empty_str(v: typing.Any) -> str:
 def test_input_factory_converts_empty_str_literal_union_to_optional() -> None:
     class Model(pydantic.BaseModel):
         website: pydantic.HttpUrl | typing.Literal[""] = ""
+        website_annotated: typing.Annotated[
+            pydantic.HttpUrl | typing.Literal[""],
+            pydantic.Field(description="Website of the model")
+        ] = ""
 
     gql_input_cls = InputFactory.make(Model)
     definition = gql_input_cls.__strawberry_definition__
-    assert len(definition.fields) == 1
+    assert len(definition.fields) == 2
 
     # Check the graphql input field is marked as optional
     assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert type(definition.fields[1].type_annotation.annotation) is StrawberryOptional
 
     # check None value is converted to empty string
-    gql_input = gql_input_cls(website=None)
+    gql_input = gql_input_cls(website=None, website_annotated=None)
     gql_input.clean()
     assert gql_input.clean_data.website == ""
+    assert gql_input.clean_data.website_annotated == ""
 
     # check unset value is the default empty string
     gql_input = gql_input_cls()
     gql_input.clean()
     assert gql_input.clean_data.website == ""
+    assert gql_input.clean_data.website_annotated == ""
 
     # check url value
-    gql_input = gql_input_cls(website="https://example.com")
+    gql_input = gql_input_cls(website="https://example.com", website_annotated="https://example2.com")
     gql_input.clean()
     assert gql_input.clean_data.website == pydantic_core.Url("https://example.com")
+    assert gql_input.clean_data.website_annotated == pydantic_core.Url("https://example2.com")
+
+
+def test_input_factory_mark_string_with_default_as_optional() -> None:
+    class Model(pydantic.BaseModel):
+        name: str = ""
+        name_annotated: typing.Annotated[str, pydantic.Field(description="Name of the model")] = ""
+        name_no_default: str
+
+    gql_input_cls = InputFactory.make(Model)
+    definition = gql_input_cls.__strawberry_definition__
+    assert len(definition.fields) == 3
+
+    # Check the graphql input field is marked as optional
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert type(definition.fields[1].type_annotation.annotation) is StrawberryOptional
+    assert definition.fields[2].type_annotation.annotation is str
+
+    # check None value is converted to empty string
+    gql_input = gql_input_cls(name=None, name_annotated=None, name_no_default="something")
+    gql_input.clean()
+    assert gql_input.clean_data.name == ""
+    assert gql_input.clean_data.name_annotated == ""
+    assert gql_input.clean_data.name_no_default == "something"
+
+    # check unset value is the default empty string
+    gql_input = gql_input_cls(name_no_default="something")
+    gql_input.clean()
+    assert gql_input.clean_data.name == ""
+    assert gql_input.clean_data.name_annotated == ""
+    assert gql_input.clean_data.name_no_default == "something"
+
+    # check url value
+    gql_input = gql_input_cls(name="John", name_annotated="Doe", name_no_default="something")
+    gql_input.clean()
+    assert gql_input.clean_data.name == "John"
+    assert gql_input.clean_data.name_annotated == "Doe"
+    assert gql_input.clean_data.name_no_default == "something"
+
