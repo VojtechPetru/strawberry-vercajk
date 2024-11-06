@@ -1,3 +1,5 @@
+from email.headerregistry import Address
+
 # (Input) Validation
 This module provides 
 - a way to validate input data in Strawberry
@@ -29,11 +31,24 @@ class UserCreateInputValidator(strawberry_vercajk.InputValidator):
     company: CompanyInputValidator
     addresses: typing.Annotated[list[AddressInputValidator], pydantic.Field(min_length=1)]
     age: typing.Annotated[int, pydantic.Field(ge=0, le=150)]
+
+
+UserCreateGqlInput = strawberry_vercajk.pydantic_to_input_type(UserCreateInputValidator)
+AddressGqlInput = strawberry_vercajk.pydantic_to_input_type(AddressInputValidator)
+CompanyGqlInput = strawberry_vercajk.pydantic_to_input_type(CompanyInputValidator)
 ```
 
 >[!TIP]
 > You can use [pydbull](https://github.com/COEXCZ/pydbull) library for converting data objects (such as Django models) 
 > to Pydantic models or adding validation rules based on model constraints.
+
+>[!TIP]
+> Fields annotated as a union with `typing.Literal[""]` are marked as optional in the generated Strawberry input type.
+> The null values are automatically converted to an empty string.
+
+>[!TIP]
+> String fields with a default value are marked as optional in the generated Strawberry input type.
+> The null values are automatically converted to an empty string.
 
 
 You can create a Strawberry mutation that uses these validators:
@@ -73,7 +88,7 @@ class Mutation:
     def user_create(
             self,
             inp: typing.Annotated[
-                strawberry_vercajk.pydantic_to_input_type(UserCreateInputValidator),
+                UserCreateGqlInput,
                 strawberry.argument(name="input"),
             ],
     ) -> typing.Annotated[
@@ -190,7 +205,7 @@ class Mutation:
     @strawberry.mutation
     def user_create(
             self,
-            input: strawberry_vercajk.pydantic_to_input_type(UserCreateInputValidator),
+            input: UserCreateGqlInput,
     ) -> typing.Annotated[
         UserCreateErrorType | UserType,
         strawberry.union(name="UserCreateResponse"),
