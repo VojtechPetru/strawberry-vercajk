@@ -194,3 +194,28 @@ def test_multiple_nested_inputs_with_errors() -> None:
             data_type=strawberry_vercajk.ConstraintDataType.INTEGER,
         )
     ]
+
+
+def test_specific_validator_stripped_from_error_location() -> None:
+    """
+    A special case, when the pydantic field is a union of types which have more validators,
+    the last location element is the validator in which the error occurred.
+    For example, if we have a field
+      email: pydantic.EmailStr | typing.Literal[""]
+    and we pass in a value "some_invalid_email", pydantic will throw two errors with these locations:
+      - ("email", "literal['']")
+      - ("email", "function-after[Validate(), str]")
+    We don't want to include the last part of the location in the error message.
+    From my observation, the last part always seems to include "[" character, which can
+    never be in the field name - using this to determine if we should skip the last part.
+    """
+    class Model(pydantic.BaseModel):
+        url: pydantic.HttpUrl | typing.Literal[""] = ""
+
+    input_type = strawberry_vercajk.pydantic_to_input_type(Model)
+
+    input_data = input_type(url="some_invalid_url")
+    errors = input_data.clean()
+    assert len(errors) == 1  # only the first error should be kept, other are discarded as would only be confusing
+    assert errors[0].location == ["url"]
+    assert errors[0].code == "url_parsing"

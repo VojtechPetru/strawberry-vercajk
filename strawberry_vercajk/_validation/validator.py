@@ -135,6 +135,7 @@ def pydantic_to_input_type[T: "pydantic.BaseModel"](validator_cls: type[T], /) -
 
 def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInterface"]:
     errors: list[gql_types.ErrorInterface] = []
+    locations_with_type_union_errors: set[tuple[str, ...]] = set()
     for error in exc.errors():
         error_ctx = error.get("ctx", {})
         loc = error.get("loc", [])
@@ -151,11 +152,45 @@ def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInter
                 ),
             )
 
+        location: list[str | int] = []
+        loc_len = len(loc)
+        has_type_union_error: bool = False
+        for l_idx, l in enumerate(loc, 1):  # noqa: E741
+            if l_idx == loc_len and "[" in l:
+                # A special case, when the pydantic field is a union of types which have more validators,
+                # the last location element is the validator in which the error occurred.
+                # For example, if we have a field
+                #   email: pydantic.EmailStr | typing.Literal[""]
+                # and we pass in a value "some_invalid_email", pydantic will throw two errors with these locations:
+                #   - ("email", "function-after[Validate(), str]")
+                #   - ("email", "literal['']")
+                # We don't want to include the last part of the location in the error message.
+                # From my observation, the last part always seems to include "[" character, which can
+                # never be in the field name - using this to determine if we should skip the last part.
+                # See test_specific_validator_stripped_from_error_location.
+                has_type_union_error = True
+                continue
+            if isinstance(l, str):
+                location.append(to_camel_case(l))
+            else:
+                location.append(l)
+
+        if has_type_union_error:
+            if tuple(location) in locations_with_type_union_errors:
+                # See comment above.
+                # We only keep the first error for the same location from the errors caused by type union.
+                # This is so we don't confuse the user with multiple errors for the same field which may even be
+                # contradictory in some cases.
+                # This relies on the programmer to place the more specific validators first in the union, so
+                # for example, `email: pydantic.EmailStr | typing.Literal[""]` and not the other way around.
+                continue
+            locations_with_type_union_errors.add(tuple(location))
+
         errors.append(
             gql_types.ErrorType(
                 code=error["type"],
                 message=error["msg"],
-                location=[to_camel_case(l) if isinstance(l, str) else l for l in loc],  # noqa: E741
+                location=location,
                 constraints=constraints,
             ),
         )

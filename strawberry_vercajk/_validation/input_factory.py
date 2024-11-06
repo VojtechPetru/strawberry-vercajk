@@ -116,6 +116,8 @@ class InputFactory:
         """
         if field_info.annotation is str and not field_info.is_required():
             # Mark string fields which have a default value as not required.
+            # This is just so that FE doesn't have a "special case" where they have to send an empty string
+            # to these fields to indicate "empty" instead of null as everywhere else.
             return typing.Optional[field_info.annotation], [pydantic.BeforeValidator(_none_to_empty_string)]  # noqa: UP007
 
         if typing.get_origin(field_info.annotation) is not typing.Union:
