@@ -26,6 +26,15 @@ def _none_to_empty_string(value: typing.Any) -> typing.Any:  # noqa: ANN401
     return "" if value is None else value
 
 
+_PYDANTIC_TYPE_MAP = {
+    pydantic.EmailStr: str,
+    pydantic.SecretStr: str,
+    pydantic.SecretBytes: bytes,
+    pydantic.AnyUrl: str,
+    pydantic_core.MultiHostUrl: str,
+}
+
+
 class InputFactory:
     """
     Factory for creating GraphQL input type from InputValidator type
@@ -115,7 +124,8 @@ class InputFactory:
         convertors: list[pydantic.BeforeValidator | pydantic.AfterValidator] = []
         is_auto: bool = True  # whether "strawberry.auto" should be used
         for internal_type in typing.get_args(field_info.annotation):
-            if cls._is_empty_str_literal(internal_type):
+            internal_origin_type = cls._get_origin_type_from_annotated_type(internal_type)
+            if internal_origin_type is typing.Literal[""]:
                 # Replace typing.Literal[""] with NoneType
                 #  - let the field appear as optional in the gql schema
                 #  - convert None back to empty string when data is received
@@ -123,7 +133,9 @@ class InputFactory:
                 ret_types.append(types.NoneType)
                 convertors.append(pydantic.BeforeValidator(_none_to_empty_string))
             else:
-                ret_types.append(internal_type)
+                ret_types.append(
+                    _PYDANTIC_TYPE_MAP.get(internal_origin_type, internal_type),
+                )
 
         if is_auto:
             return strawberry.auto, []
@@ -166,13 +178,16 @@ class InputFactory:
             return from_type
         raise TypeError
 
-    @staticmethod
-    def _is_empty_str_literal(t: type, /) -> bool:
-        if t is typing.Literal[""]:
-            return True
+    @classmethod
+    def _get_origin_type_from_annotated_type(cls, t: type) -> type:
+        """
+        Get the origin type from an annotated type.
+        For example, if `t` is `Annotated[str, ...]`, this method will return `str`.
+        :param t: The type to get the origin type from
+        """
         if typing.get_origin(t) is typing.Annotated:
-            return typing.get_args(t)[0] is typing.Literal[""]
-        return False
+            return cls._get_origin_type_from_annotated_type(typing.get_args(t)[0])
+        return t
 
     @classmethod
     def extract_constrains(
