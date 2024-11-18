@@ -156,7 +156,7 @@ def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInter
         loc_len = len(loc)
         has_type_union_error: bool = False
         for l_idx, l in enumerate(loc, 1):  # noqa: E741
-            if l_idx == loc_len and "[" in l:
+            if l_idx == loc_len and isinstance(l, str) and "[" in l:
                 # A special case, when the pydantic field is a union of types which have more validators,
                 # the last location element is the validator in which the error occurred.
                 # For example, if we have a field
