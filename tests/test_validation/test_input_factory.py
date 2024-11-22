@@ -256,8 +256,8 @@ def test_input_factory_converts_empty_str_literal_union_to_optional() -> None:
     # check url value
     gql_input = gql_input_cls(website="https://example.com", website_annotated="https://example2.com")
     gql_input.clean()
-    assert gql_input.clean_data.website == pydantic_core.Url("https://example.com")
-    assert gql_input.clean_data.website_annotated == pydantic_core.Url("https://example2.com")
+    assert gql_input.clean_data.website == pydantic.HttpUrl("https://example.com")
+    assert gql_input.clean_data.website_annotated == pydantic.HttpUrl("https://example2.com")
 
 
 def test_input_factory_mark_string_with_default_as_optional() -> None:

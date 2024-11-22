@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "strawberry_vercajk"
-version = "0.1.16"
+version = "0.1.17"
 description = ""
 authors = ["vojtech <petru.vojtech@gmail.com>"]
 readme = "README.md"
@@ -13,7 +13,7 @@ Django = ">=5.1"
 factory-boy = ">=3.3.1"
 strawberry-graphql-django = ">=0.48.0"
 graphql-sync-dataloaders = { git = "https://github.com/VojtechPetru/graphql-sync-dataloaders.git", rev = "15c80a2" }
-sqids = "^0.5.0"
+sqids = ">=0.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

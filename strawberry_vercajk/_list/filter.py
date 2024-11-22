@@ -69,10 +69,26 @@ class FilterQ:
     _operator: typing.Literal["AND", "OR", "NOT"] | None = None
 
     def __and__(self, other: typing.Self) -> typing.Self:
-        return FilterQ(_left=self, _right=other, _operator="AND")
+        # Skip for no-op filters
+        left = self if not self.is_noop else None
+        if left is None:
+            return other
+        right = other if not other.is_noop else None
+        if right is None:
+            return left
+
+        return FilterQ(_left=left, _right=right, _operator="AND" if not other.is_noop else None)
 
     def __or__(self, other: typing.Self) -> typing.Self:
-        return FilterQ(_left=self, _right=other, _operator="OR")
+        # Skip for no-op filters
+        left = self if not self.is_noop else None
+        if left is None:
+            return other
+        right = other if not other.is_noop else None
+        if right is None:
+            return left
+
+        return FilterQ(_left=left, _right=right, _operator="OR")
 
     def __invert__(self) -> typing.Self:
         return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")

@@ -46,6 +46,12 @@ CompanyGqlInput = strawberry_vercajk.pydantic_to_input_type(CompanyInputValidato
 > Fields annotated as a union with `typing.Literal[""]` are marked as optional in the generated Strawberry input type.
 > The null values are automatically converted to an empty string.
 
+>[!WARNING]
+> For fields with union type, only the errors from the first type is returned in the response.
+> This means that the most specific type should be the first one in the union.
+> For example, non-required email field should be annotated as `pydantic.EmailStr | typing.Literal[""]` and not
+> the other way around.
+
 >[!TIP]
 > String fields with a default value are marked as optional in the generated Strawberry input type.
 > The null values are automatically converted to an empty string.
