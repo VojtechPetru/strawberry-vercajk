@@ -1,5 +1,7 @@
 import typing
 
+import pydantic
+import pydantic_core
 from django.conf import settings as django_settings
 
 SETTINGS_NAME: str = "STRAWBERRY_VERCAJK"
@@ -26,11 +28,19 @@ class IDHasherSettings(typing.TypedDict):
     MIN_LENGTH: typing.NotRequired[int]
 
 
+class ValidationSettings(typing.TypedDict):
+    """Settings of the validation."""
+
+    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE: dict[type, type]
+    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS: bool
+
+
 class StrawberryVercajkSettings(typing.TypedDict):
     """Settings of the Strawberry vercajk app."""
 
-    LIST: ListSettings
-    ID_HASHER: IDHasherSettings
+    LIST: typing.NotRequired[ListSettings]
+    ID_HASHER: typing.NotRequired[IDHasherSettings]
+    VALIDATION: typing.NotRequired[ValidationSettings]
 
 
 class AppListSettings:
@@ -69,6 +79,36 @@ class AppIDHasherSettings:
         return self._global_settings.get("ID_HASHER", {})
 
 
+class AppValidationSettings:
+    @property
+    def PYDANTIC_TO_GQL_INPUT_TYPE(self) -> dict[type, type]:  # noqa: N802
+        if self.PYDANTIC_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS:
+            defaults = {}
+        else:
+            defaults = {
+                pydantic.EmailStr: str,
+                pydantic.SecretStr: str,
+                pydantic.SecretBytes: bytes,
+                pydantic.AnyUrl: str,
+                pydantic.HttpUrl: str,
+                pydantic_core.MultiHostUrl: str,
+            }
+        setting_values = self._settings.get("PYDANTIC_FIELD_TO_GQL_INPUT_TYPE", {})
+        return defaults | setting_values
+
+    @property
+    def PYDANTIC_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS(self) -> bool:  # noqa: N802
+        return self._settings.get("PYDANTIC_FIELD_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS", False)
+
+    @property
+    def _global_settings(self) -> StrawberryVercajkSettings:
+        return getattr(django_settings, SETTINGS_NAME, {})
+
+    @property
+    def _settings(self) -> ValidationSettings:
+        return self._global_settings.get("VALIDATION", {})
+
+
 class AppSettings:
     @property
     def _settings(self) -> StrawberryVercajkSettings:
@@ -81,6 +121,10 @@ class AppSettings:
     @property
     def ID_HASHER(self) -> AppIDHasherSettings:  # noqa: N802
         return AppIDHasherSettings()
+
+    @property
+    def VALIDATION(self) -> AppValidationSettings:  # noqa: N802
+        return AppValidationSettings()
 
 
 app_settings = AppSettings()

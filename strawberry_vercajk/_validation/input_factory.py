@@ -8,6 +8,7 @@ import pydbull
 import strawberry
 from strawberry.experimental.pydantic.conversion import convert_strawberry_class_to_pydantic_model
 
+from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._validation import constants, directives
 from strawberry_vercajk._validation.validator import ValidatedInput
 
@@ -24,15 +25,6 @@ DIRECTIVE_MIN: int = -DIRECTIVE_MAX
 
 def _none_to_empty_string(value: typing.Any) -> typing.Any:  # noqa: ANN401
     return "" if value is None else value
-
-
-_PYDANTIC_TYPE_MAP = {
-    pydantic.EmailStr: str,
-    pydantic.SecretStr: str,
-    pydantic.SecretBytes: bytes,
-    pydantic.AnyUrl: str,
-    pydantic_core.MultiHostUrl: str,
-}
 
 
 class InputFactory:
@@ -136,7 +128,7 @@ class InputFactory:
                 convertors.append(pydantic.BeforeValidator(_none_to_empty_string))
             else:
                 ret_types.append(
-                    _PYDANTIC_TYPE_MAP.get(internal_origin_type, internal_type),
+                    app_settings.VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE.get(internal_origin_type, internal_type),
                 )
 
         if is_auto:
