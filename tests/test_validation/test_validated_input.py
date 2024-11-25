@@ -221,7 +221,7 @@ def test_specific_validator_stripped_from_error_location() -> None:
     assert errors[0].code == "url_parsing"
 
 
-def test_multiple_hashed_id_annotated_field_invalid_value() -> None:
+def test_hashed_id_annotated_field_invalid_value() -> None:
     class Model(pydantic.BaseModel):
         some_id: strawberry_vercajk.HashedID
 
@@ -234,7 +234,7 @@ def test_multiple_hashed_id_annotated_field_invalid_value() -> None:
     assert errors[0].message == "Invalid ID prefix_abc123def456ghi7."
 
 
-def test_multiple_hashed_id_annotated_field_valid_value() -> None:
+def test_hashed_id_annotated_field_valid_value() -> None:
     prefix: typing.LiteralString = "prefix"
     @strawberry_vercajk.hash_id_register(prefix)
     class HashedIDRegisteredModel(pydantic.BaseModel):
@@ -247,3 +247,4 @@ def test_multiple_hashed_id_annotated_field_valid_value() -> None:
     input_data = input_type(some_id=f"{prefix}_abc123def456ghi7")
     errors = input_data.clean()
     assert len(errors) == 0
+    assert isinstance(input_data.clean_data.some_id, strawberry_vercajk.HashedID)

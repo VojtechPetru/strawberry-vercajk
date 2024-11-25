@@ -145,7 +145,7 @@ def _hashed_id_pydantic_core_schema(
     hashed_id: "HashedID",  # noqa: ARG001
     handler: pydantic.GetCoreSchemaHandler,
 ) -> pydantic_core.CoreSchema:
-    def validate_hashed_id(v: str) -> str:
+    def validate_hashed_id(v: str) -> "HashedID":
         try:
             HashIDRegistry.get_hasher_by_hash_id(v)
         except (HashIDRegistry.InvalidHashID, HashIDRegistry.HashIDNotRegistered) as e:
@@ -156,7 +156,7 @@ def _hashed_id_pydantic_core_schema(
                     "hashed_id": v,
                 },
             ) from e
-        return v
+        return HashedID(v)
 
     return pydantic_core.core_schema.no_info_after_validator_function(
         validate_hashed_id,
