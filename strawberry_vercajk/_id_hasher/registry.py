@@ -141,6 +141,29 @@ class HashIDRegistry:
             )
 
 
+def _hashed_id_pydantic_core_schema(
+    hashed_id: "HashedID",  # noqa: ARG001
+    handler: pydantic.GetCoreSchemaHandler,
+) -> pydantic_core.CoreSchema:
+    def validate_hashed_id(v: str) -> str:
+        try:
+            HashIDRegistry.get_hasher_by_hash_id(v)
+        except (HashIDRegistry.InvalidHashID, HashIDRegistry.HashIDNotRegistered) as e:
+            raise pydantic_core.PydanticCustomError(
+                "invalid_id",
+                "Invalid ID {hashed_id}.",
+                {
+                    "hashed_id": v,
+                },
+            ) from e
+        return v
+
+    return pydantic_core.core_schema.no_info_after_validator_function(
+        validate_hashed_id,
+        handler(str),
+    )
+
+
 class HashedID[T: type | ...](str):  # noqa: SLOT000
     """
     Represents a hashed ID of an object (see IDHasher).
@@ -157,6 +180,10 @@ class HashedID[T: type | ...](str):  # noqa: SLOT000
     @property
     def model(self) -> type[T]:
         return self.hasher.model
+
+
+# Allows HashedID to be used as a field type in Pydantic models.
+HashedID.__get_pydantic_core_schema__ = _hashed_id_pydantic_core_schema
 
 
 class HashIDUnionRegistry:

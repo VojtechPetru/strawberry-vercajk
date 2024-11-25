@@ -219,3 +219,31 @@ def test_specific_validator_stripped_from_error_location() -> None:
     assert len(errors) == 1  # only the first error should be kept, other are discarded as would only be confusing
     assert errors[0].location == ["url"]
     assert errors[0].code == "url_parsing"
+
+
+def test_multiple_hashed_id_annotated_field_invalid_value() -> None:
+    class Model(pydantic.BaseModel):
+        some_id: strawberry_vercajk.HashedID
+
+    input_type = strawberry_vercajk.pydantic_to_input_type(Model)
+    input_data = input_type(some_id="prefix_abc123def456ghi7")
+    errors = input_data.clean()
+    assert len(errors) == 1
+    assert errors[0].location == ["some_id"]
+    assert errors[0].code == "invalid_id"
+    assert errors[0].message == "Invalid ID prefix_abc123def456ghi7"
+
+
+def test_multiple_hashed_id_annotated_field_valid_value() -> None:
+    prefix: typing.LiteralString = "prefix"
+    @strawberry_vercajk.hash_id_register(prefix)
+    class HashedIDRegisteredModel(pydantic.BaseModel):
+        pass
+
+    class Model(pydantic.BaseModel):
+        some_id: strawberry_vercajk.HashedID
+
+    input_type = strawberry_vercajk.pydantic_to_input_type(Model)
+    input_data = input_type(some_id=f"{prefix}_abc123def456ghi7")
+    errors = input_data.clean()
+    assert len(errors) == 0
