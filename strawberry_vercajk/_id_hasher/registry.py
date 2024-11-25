@@ -181,6 +181,14 @@ class HashedID[T: type | ...](str):  # noqa: SLOT000
     def model(self) -> type[T]:
         return self.hasher.model
 
+    @property
+    def prefix(self) -> str:
+        return self.split(self.hasher.PREFIX_SEPARATOR)[0]
+
+    @property
+    def hash(self) -> str:
+        return self.split(self.hasher.PREFIX_SEPARATOR)[1]
+
 
 # Allows HashedID to be used as a field type in Pydantic models.
 HashedID.__get_pydantic_core_schema__ = _hashed_id_pydantic_core_schema
