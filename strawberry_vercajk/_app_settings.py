@@ -2,6 +2,7 @@ import typing
 
 import pydantic
 import pydantic_core
+import strawberry
 from django.conf import settings as django_settings
 
 SETTINGS_NAME: str = "STRAWBERRY_VERCAJK"
@@ -82,6 +83,8 @@ class AppIDHasherSettings:
 class AppValidationSettings:
     @property
     def PYDANTIC_TO_GQL_INPUT_TYPE(self) -> dict[type, type]:  # noqa: N802
+        from strawberry_vercajk import HashedID
+
         if self.PYDANTIC_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS:
             defaults = {}
         else:
@@ -92,6 +95,7 @@ class AppValidationSettings:
                 pydantic.AnyUrl: str,
                 pydantic.HttpUrl: str,
                 pydantic_core.MultiHostUrl: str,
+                HashedID: strawberry.ID,
             }
         setting_values = self._settings.get("PYDANTIC_FIELD_TO_GQL_INPUT_TYPE", {})
         return defaults | setting_values

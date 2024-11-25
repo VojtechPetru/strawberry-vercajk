@@ -229,9 +229,9 @@ def test_multiple_hashed_id_annotated_field_invalid_value() -> None:
     input_data = input_type(some_id="prefix_abc123def456ghi7")
     errors = input_data.clean()
     assert len(errors) == 1
-    assert errors[0].location == ["some_id"]
+    assert errors[0].location == ["someId"]
     assert errors[0].code == "invalid_id"
-    assert errors[0].message == "Invalid ID prefix_abc123def456ghi7"
+    assert errors[0].message == "Invalid ID prefix_abc123def456ghi7."
 
 
 def test_multiple_hashed_id_annotated_field_valid_value() -> None:
