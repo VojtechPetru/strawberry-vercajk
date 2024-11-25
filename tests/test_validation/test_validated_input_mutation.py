@@ -18,9 +18,9 @@ class OkResponse:
 
 @strawberry.type(name="UsernameTakenError")
 class UsernameTakenErrorType(strawberry_vercajk.ErrorInterface):
+    suggested_username: str
     code: str = "username_taken"
     message: str = "Username is already taken."
-    suggested_username: str
 
 
 @strawberry.type(name="UserCreateError")
@@ -46,6 +46,7 @@ class PayloadData(typing.TypedDict):
     dateTimeField: str
     nestedField: dict
     nestedFieldList: list[dict]
+    hashIdField: str
 
 
 class SomeEnum(enum.Enum):
@@ -95,6 +96,7 @@ class MutationInputValidator(strawberry_vercajk.InputValidator):
     date_time_field: datetime
     nested_field: NestedInputValidator
     nested_field_list: list[NestedInputValidator]
+    hash_id_field: strawberry_vercajk.HashedID
 
     @pydantic.field_validator("date_field")
     def date_field_validator(cls, value: date) -> date:
@@ -135,6 +137,7 @@ class MutationInputValidator(strawberry_vercajk.InputValidator):
             )
         return self
 
+MutationInputGql = strawberry_vercajk.pydantic_to_input_type(MutationInputValidator)
 
 class UserCreateInputValidator(strawberry_vercajk.InputValidator):
     username: typing.Annotated[str, pydantic.Field(max_length=20)]
@@ -145,7 +148,7 @@ class Mutation:
     @strawberry.mutation
     def test_mutation(
             self,
-            input: strawberry_vercajk.pydantic_to_input_type(MutationInputValidator),
+            input: MutationInputGql,
     ) -> typing.Annotated[
         strawberry_vercajk.MutationErrorType | OkResponse,
         strawberry.union(name="TestMutationResponse")
@@ -266,6 +269,12 @@ USER_CREATE_MUTATION_WITH_EXTRA_ERROR: str = """
     }
 """
 
+_HASHID_PREFIX: typing.LiteralString = "somehashidprefix"
+@strawberry_vercajk.hash_id_register(_HASHID_PREFIX)
+class _HashIDPrefixTestModel:
+    pass
+
+
 def get_valid_input() -> PayloadData:
     return  {
         "fieldNoValidator": 1,
@@ -286,6 +295,7 @@ def get_valid_input() -> PayloadData:
                 "field": "ABCD2",
             },
         ],
+        "hashIdField": f"{_HASHID_PREFIX}_abc123def",
     }
 
 
@@ -298,6 +308,20 @@ def test_valid_input() -> None:
     )
     assert resp.data["testMutation"]["__typename"] is "OkResponse"
     assert resp.data["testMutation"]["ok"] is True
+
+
+def test_hashid_field_invalid() -> None:
+    input_data = get_valid_input()
+    input_data["hashIdField"] = f"{_HASHID_PREFIX}invalid_abc123def"
+    resp = test_schema.execute_sync(
+        query=TEST_MUTATION,
+        variable_values={
+            "input": input_data,
+        },
+    )
+    assert resp.data["testMutation"]["__typename"] is "MutationError"
+    assert len(resp.data["testMutation"]["errors"]) == 1
+    assert resp.data["testMutation"]["errors"][0]["code"] == "invalid_id"
 
 
 def test_invalid_field_method_custom_validator() -> None:

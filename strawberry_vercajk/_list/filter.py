@@ -431,7 +431,7 @@ class Filter(FilterInterface):
 
     @property
     def filterset_field(self) -> "pydantic.fields.FieldInfo":
-        return self.filterset_cls.model_fields[self.field_name]
+        return self.filterset_cls.__pydantic_fields__[self.field_name]
 
     @property
     def filterset_field_type(self) -> type:

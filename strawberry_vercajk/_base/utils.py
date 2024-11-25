@@ -39,7 +39,7 @@ def check_pydantic_field_exists(model: type["pydantic.BaseModel"], field_path: s
     pyd_model = model
     for field in field_path_sep:
         try:
-            model_field = pyd_model.model_fields[field]
+            model_field = pyd_model.__pydantic_fields__[field]
         except KeyError as e:
             raise exceptions.ModelFieldDoesNotExistError(
                 root_model=model,

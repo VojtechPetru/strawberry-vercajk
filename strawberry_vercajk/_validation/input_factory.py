@@ -53,7 +53,7 @@ class InputFactory:
         if name is None:
             name = typing.cast(typing.LiteralString, input_validator.__name__.removesuffix("Validator"))
 
-        fields = input_validator.model_fields.copy()
+        fields = input_validator.__pydantic_fields__.copy()
         for field_info in fields.values():
             # If the field is also a pydantic model, we need to create a GraphQL input for it as well.
             if nested_input_validator := cls.__get_input_validator(field_info.annotation):
@@ -65,7 +65,8 @@ class InputFactory:
             field_constraints_directive = cls.extract_constrains(input_validator, field_info)
             field_type, field_convertors = cls._get_field_annotation(field_info)
             field_convertors_any = field_convertors_any or field_convertors
-            input_validator.model_fields[field_name].metadata.extend(field_convertors)
+            if field_convertors:
+                input_validator.__pydantic_fields__[field_name].metadata.extend(field_convertors)
             if field_constraints_directive:
                 strawberry_field = strawberry.field(
                     directives=[
@@ -110,10 +111,10 @@ class InputFactory:
             # Mark string fields which have a default value as not required.
             # This is just so that FE doesn't have a "special case" where they have to send an empty string
             # to these fields to indicate "empty" instead of null as everywhere else.
-            return typing.Optional[field_info.annotation], [pydantic.BeforeValidator(_none_to_empty_string)]  # noqa: UP007
+            return typing.Optional[str], [pydantic.BeforeValidator(_none_to_empty_string)]  # noqa: UP007
 
         if typing.get_origin(field_info.annotation) is not typing.Union:
-            return strawberry.auto, []
+            return app_settings.VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE.get(field_info.annotation, strawberry.auto), []
         ret_types: list[type] = []
         convertors: list[pydantic.BeforeValidator | pydantic.AfterValidator] = []
         is_auto: bool = True  # whether "strawberry.auto" should be used
