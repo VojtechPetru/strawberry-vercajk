@@ -41,12 +41,18 @@ class PayloadData(typing.TypedDict):
     fieldWithCustomValidator: str
     enumField: str
     enumFieldOptional: typing.NotRequired[str | None]
+    fieldWithOptionalList: list[int] | None
     enumFieldList: list[str]
     dateField: str
     dateTimeField: str
     nestedField: dict
     nestedFieldList: list[dict]
     hashIdField: str
+    hashIdFieldList: list[str]
+    hashIdFieldOptional: typing.NotRequired[str | None]
+    hashIdFieldAnnotated: str
+    hashIdFieldAnnotatedOptional: typing.NotRequired[str | None]
+    hashIdFieldOptionalList: list[str] | None
 
 
 class SomeEnum(enum.Enum):
@@ -89,6 +95,7 @@ class MutationInputValidator(strawberry_vercajk.InputValidator):
         str | None,
         pydantic.AfterValidator(not_a_word_validator),
     ] = None
+    field_with_optional_list: list[int] | None = None
     enum_field: SomeEnum
     enum_field_optional: SomeEnum | None = None
     enum_field_list: list[SomeEnum] = []
@@ -97,6 +104,11 @@ class MutationInputValidator(strawberry_vercajk.InputValidator):
     nested_field: NestedInputValidator
     nested_field_list: list[NestedInputValidator]
     hash_id_field: strawberry_vercajk.HashedID
+    hash_id_field_list: list[strawberry_vercajk.HashedID]
+    hash_id_field_optional: strawberry_vercajk.HashedID | None = None
+    hash_id_field_annotated: typing.Annotated[strawberry_vercajk.HashedID, pydantic.Field(description="something")]
+    hash_id_field_annotated_optional: typing.Annotated[strawberry_vercajk.HashedID | None, pydantic.Field(description="something")]
+    hash_id_field_optional_list: list[strawberry_vercajk.HashedID] | None = None
 
     @pydantic.field_validator("date_field")
     def date_field_validator(cls, value: date) -> date:
@@ -279,6 +291,7 @@ def get_valid_input() -> PayloadData:
     return  {
         "fieldNoValidator": 1,
         "fieldWithCustomValidator": "not_a_word",
+        "fieldWithOptionalList": [1, 2],
         "enumField": SomeEnum.VALUE1.name,
         "enumFieldOptional": None,
         "enumFieldList": [SomeEnum.VALUE2.name],
@@ -296,6 +309,11 @@ def get_valid_input() -> PayloadData:
             },
         ],
         "hashIdField": f"{_HASHID_PREFIX}_abc123def",
+        "hashIdFieldList": [f"{_HASHID_PREFIX}_abc123def", f"{_HASHID_PREFIX}_abc123def"],
+        "hashIdFieldOptional": None,
+        "hashIdFieldAnnotated": f"{_HASHID_PREFIX}_abc123def",
+        "hashIdFieldAnnotatedOptional": f"{_HASHID_PREFIX}_abc123def",
+        "hashIdFieldOptionalList": [f"{_HASHID_PREFIX}_abc123def", f"{_HASHID_PREFIX}_abc123def"],
     }
 
 

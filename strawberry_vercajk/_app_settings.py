@@ -32,8 +32,8 @@ class IDHasherSettings(typing.TypedDict):
 class ValidationSettings(typing.TypedDict):
     """Settings of the validation."""
 
-    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE: dict[type, type]
-    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS: bool
+    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE: typing.NotRequired[dict[type, type]]
+    PYDANTIC_FIELD_TO_GQL_INPUT_TYPE_EXCLUDE_DEFAULTS: typing.NotRequired[bool]
 
 
 class StrawberryVercajkSettings(typing.TypedDict):

@@ -242,9 +242,21 @@ def test_hashed_id_annotated_field_valid_value() -> None:
 
     class Model(pydantic.BaseModel):
         some_id: strawberry_vercajk.HashedID
+        some_id_list: list[strawberry_vercajk.HashedID]
+        some_id_optional: strawberry_vercajk.HashedID | None
+        some_id_annotated: typing.Annotated[strawberry_vercajk.HashedID, pydantic.Field(description="Some ID")]
 
     input_type = strawberry_vercajk.pydantic_to_input_type(Model)
-    input_data = input_type(some_id=f"{prefix}_abc123def456ghi7")
+    input_data = input_type(
+        some_id=f"{prefix}_abc123def456ghi7",
+        some_id_list=[f"{prefix}_abc123def456ghi7", f"{prefix}_abc123def456ghi7"],
+        some_id_optional=None,
+        some_id_annotated=f"{prefix}_abc123def456ghi7",
+    )
     errors = input_data.clean()
     assert len(errors) == 0
     assert isinstance(input_data.clean_data.some_id, strawberry_vercajk.HashedID)
+    assert len(input_data.clean_data.some_id_list) == 2
+    assert isinstance(input_data.clean_data.some_id_list[0], strawberry_vercajk.HashedID)
+    assert input_data.clean_data.some_id_optional is None
+    assert isinstance(input_data.clean_data.some_id_annotated, strawberry_vercajk.HashedID)

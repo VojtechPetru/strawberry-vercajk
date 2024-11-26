@@ -3,9 +3,11 @@ from decimal import Decimal
 
 import pydantic
 import pydantic_core
+import strawberry
 from strawberry.schema_directive import StrawberrySchemaDirective, Location
-from strawberry.types.base import StrawberryOptional
+from strawberry.types.base import StrawberryOptional, StrawberryList
 
+import strawberry_vercajk
 from strawberry_vercajk import InputFactory, FieldConstraintsDirective
 
 
@@ -296,3 +298,75 @@ def test_input_factory_mark_string_with_default_as_optional() -> None:
     assert gql_input.clean_data.name_annotated == "Doe"
     assert gql_input.clean_data.name_no_default == "something"
 
+
+def test_input_factory_make_with_hashed_id_field() -> None:
+    class Model(pydantic.BaseModel):
+        name: strawberry_vercajk.HashedID
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert definition.fields[0].type_annotation.annotation is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_optional() -> None:
+    class Model(pydantic.BaseModel):
+        name: strawberry_vercajk.HashedID | None = None
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert definition.fields[0].type_annotation.annotation.of_type is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_annotated() -> None:
+    class Model(pydantic.BaseModel):
+        name: typing.Annotated[strawberry_vercajk.HashedID, pydantic.Field(description="Name of the model")]
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert definition.fields[0].description == "Name of the model"
+    assert definition.fields[0].type_annotation.annotation is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_annotated_optional() -> None:
+    class Model(pydantic.BaseModel):
+        name: typing.Annotated[strawberry_vercajk.HashedID | None, pydantic.Field(description="Name of the model")]
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert definition.fields[0].description == "Name of the model"
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert definition.fields[0].type_annotation.annotation.of_type is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_list() -> None:
+    class Model(pydantic.BaseModel):
+        name: list[strawberry_vercajk.HashedID]
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryList
+    assert definition.fields[0].type_annotation.annotation.of_type is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_list_optional() -> None:
+    class Model(pydantic.BaseModel):
+        name: list[strawberry_vercajk.HashedID] | None = None
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert type(definition.fields[0].type_annotation.annotation.of_type) is StrawberryList
+    assert definition.fields[0].type_annotation.annotation.of_type.of_type is strawberry.ID
+
+
+def test_input_factory_make_with_hashed_id_field_list_optional_optional() -> None:
+    class Model(pydantic.BaseModel):
+        name: list[strawberry_vercajk.HashedID | None] | None = None
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert type(definition.fields[0].type_annotation.annotation) is StrawberryOptional
+    assert type(definition.fields[0].type_annotation.annotation.of_type) is StrawberryList
+    assert type(definition.fields[0].type_annotation.annotation.of_type.of_type) is StrawberryOptional
+    assert definition.fields[0].type_annotation.annotation.of_type.of_type.of_type is strawberry.ID

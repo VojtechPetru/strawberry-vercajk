@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "strawberry_vercajk"
-version = "0.1.23"
+version = "0.1.24"
 description = ""
 authors = ["vojtech <petru.vojtech@gmail.com>"]
 readme = "README.md"
