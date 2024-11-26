@@ -2,6 +2,7 @@ import typing
 
 import pytest
 
+import strawberry_vercajk
 from strawberry_vercajk._base.exceptions import ModelFieldDoesNotExistError
 from strawberry_vercajk._list.filter import (
     model_filter, FilterSet, Filter, FilterFieldTypeNotSupportedError,
@@ -120,3 +121,72 @@ def test_multiple_filters_annotation_raises_error() -> None:
                 Filter(model_field="name", lookup="exact"),
                 Filter(model_field="name", lookup="exact"),
             ] = None
+
+
+def test_filterq_is_noop_false() -> None:
+    q = strawberry_vercajk.FilterQ(field="name", lookup="exact", value="pepa")
+    assert not q.is_noop
+
+
+def test_filterq_is_noop_true() -> None:
+    q = strawberry_vercajk.FilterQ()
+    assert q.is_noop
+
+
+def test_filterq_is_noop_true_if_negated_empty() -> None:
+    q = ~strawberry_vercajk.FilterQ()
+    assert q.is_noop
+
+
+def test_filterq_is_noop_false_if_noop_and_noop() -> None:
+    q = strawberry_vercajk.FilterQ()
+    q &= strawberry_vercajk.FilterQ()
+    assert q.is_noop
+
+
+def test_filterq_is_noop_false_if_noop_or_noop() -> None:
+    q = strawberry_vercajk.FilterQ()
+    q |= strawberry_vercajk.FilterQ()
+    assert q.is_noop
+
+
+def test_filterq_is_noop_false_if_noop_and_op() -> None:
+    q = strawberry_vercajk.FilterQ()
+    q &= strawberry_vercajk.FilterQ(field="name", lookup="exact", value="pepa")
+    assert not q.is_noop
+
+
+def test_filterq_is_noop_false_if_noop_or_op() -> None:
+    q = strawberry_vercajk.FilterQ()
+    q |= strawberry_vercajk.FilterQ(field="name", lookup="exact", value="pepa")
+    assert not q.is_noop
+
+
+def test_filterq_is_noop_false_if_op_and_noop() -> None:
+    q = strawberry_vercajk.FilterQ(field="name", lookup="exact", value="pepa")
+    q &= strawberry_vercajk.FilterQ()
+    assert not q.is_noop
+
+
+def test_filterq_is_noop_false_if_op_or_noop() -> None:
+    q = strawberry_vercajk.FilterQ(field="name", lookup="exact", value="pepa")
+    q |= strawberry_vercajk.FilterQ()
+    assert not q.is_noop
+
+def test_filterq_is_noop_false_complex() -> None:
+    fields = [
+        ("name", "pepa"),
+        ("description", "josefov"),
+    ]
+    q = strawberry_vercajk.FilterQ()
+    for field_name, field_value in fields:
+        q |= strawberry_vercajk.FilterQ(
+            field=field_name,
+            lookup="exact",
+            value=field_value,
+        ) & strawberry_vercajk.FilterQ(
+            field=field_name,
+            lookup="in",
+            value=field_value,
+        )
+    assert not q.is_noop

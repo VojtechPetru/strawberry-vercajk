@@ -99,7 +99,7 @@ class FilterQ:
     @property
     def is_noop(self) -> bool:
         """No operation should be performed."""
-        return self.field is None
+        return self.field is None and self.left is None and self.right is None
 
     @property
     def left(self) -> typing.Self:
