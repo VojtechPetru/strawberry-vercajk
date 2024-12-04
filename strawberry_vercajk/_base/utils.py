@@ -48,4 +48,4 @@ def check_pydantic_field_exists(model: type["pydantic.BaseModel"], field_path: s
                 field=field,
             ) from e
         if isinstance(model_field, pydantic.BaseModel):
-            pyd_model = model_field.related_model
+            pyd_model = model_field

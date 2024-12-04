@@ -445,6 +445,31 @@ class Filter(FilterInterface):
     def filterset_cls(self, value: type["FilterSet"]) -> None:
         self.__filterset_cls = value
 
+    def _check_model_field_exists(self) -> None:
+        """Checks if the field exists on the model."""
+        model_cls = self.filterset_cls.get_model()
+        if issubclass(model_cls, pydantic.BaseModel):
+            return base_utils.check_pydantic_field_exists(model_cls, self.model_field)
+
+        try:
+            import django.db.models
+
+            if issubclass(model_cls, django.db.models.Model):
+                return base_utils.check_django_field_exists(model_cls, self.model_field)
+        except ImportError:
+            pass
+
+        raise TypeError(f"Unexpected model type {model_cls} in {self.filterset_cls().__name__} FilterSet.")
+
+    def _check_lookup_is_resolvable(self) -> None:
+        """Checks if the lookup is resolvable for the field type."""
+        if self.is_list and self.lookup not in ["in", "overlap"]:
+            raise FilterFieldLookupAmbiguousError(
+                f"`{self.filterset_cls.__name__}.{self.field_name}` filter `{type(self).__name__}` has "
+                f"a lookup `{self.lookup}` which does not support list as input, yet "
+                f"the field is annotated as `{self.filterset_field_type}`.",
+            )
+
 
 class FilterSet(InputValidator):
     """
@@ -510,7 +535,7 @@ class FilterSet(InputValidator):
         This method is called automatically by the `model_filter` decorator and should not be called manually.
         """
         ret: dict[str, FilterInterface] = {}
-        for field_name, field in cls.model_fields.items():
+        for field_name, field in cls.__pydantic_fields__.items():
             cls._check_field_type(field.annotation)
             field_filters: list[FilterInterface] = []
             for annotation in field.metadata:
@@ -520,9 +545,9 @@ class FilterSet(InputValidator):
                 for filter_ in annotation.get_filters():
                     filter_.filterset_cls = cls
                     filter_.field_name = field_name
-                    cls._check_lookup_is_resolvable(filter_)
+                    filter_._check_lookup_is_resolvable()  # noqa: SLF001
                     if filter_.check_field_exists:
-                        cls._check_field_exists(filter_)
+                        filter_._check_model_field_exists()  # noqa: SLF001
                 field_filters.append(annotation)
 
             if not field_filters:
@@ -556,33 +581,6 @@ class FilterSet(InputValidator):
 
         # Can be some other annotation. For example, pydantic validators.
         return isinstance(annotation, FilterInterface)
-
-    @classmethod
-    def _check_lookup_is_resolvable(cls, f: "Filter") -> None:
-        """Checks if the lookup is resolvable for the field type."""
-        if f.is_list and f.lookup not in ["in", "overlap"]:
-            raise FilterFieldLookupAmbiguousError(
-                f"`{cls.__name__}.{f.field_name}` filter `{type(f).__name__}` has "
-                f"a lookup `{f.lookup}` which does not support list as input, yet "
-                f"the field is annotated as `{f.filterset_field_type}`.",
-            )
-
-    @classmethod
-    def _check_field_exists(cls, f: "Filter") -> None:
-        """Checks if the field exists on the model."""
-        model_cls = cls.get_model()
-        if issubclass(model_cls, pydantic.BaseModel):
-            return base_utils.check_pydantic_field_exists(model_cls, f.model_field)
-
-        try:
-            import django.db.models
-
-            if issubclass(model_cls, django.db.models.Model):
-                return base_utils.check_django_field_exists(model_cls, f.model_field)
-        except ImportError:
-            pass
-
-        raise TypeError(f"Unexpected model type {model_cls} in {cls.__name__} FilterSet.")
 
     @classmethod
     def _check_field_type(cls, field_annotation: type) -> None:
