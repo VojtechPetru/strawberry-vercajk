@@ -8,6 +8,7 @@ __all__ = [
 
 import abc
 import dataclasses
+import enum
 import functools
 import types
 import typing
@@ -58,12 +59,14 @@ _DB_LOOKUPS: set[typing.LiteralString] = set(typing.get_args(_DBLookupType))
 _FILTER_MODEL_ATTR_NAME: typing.LiteralString = "__VERCAJK_MODEL"
 _FILTERS_FILTERSET_ATTR_NAME: typing.LiteralString = "__VERCAJK_FILTERS"
 
+FilterQValueT = str | int | float | Decimal | date | datetime
+
 
 @dataclasses.dataclass
 class FilterQ:
     field: str | None = None
     lookup: _DBLookupType | None = None
-    value: str | int | float | Decimal | date | datetime | None = None
+    value: FilterQValueT | typing.Iterable[FilterQValueT] | None = None
     _left: typing.Self | None = None
     _right: typing.Self | None = None
     _operator: typing.Literal["AND", "OR", "NOT"] | None = None
@@ -300,7 +303,7 @@ class Filter(FilterInterface):
 
     def __init__(
         self,
-        model_field: typing.LiteralString | None = None,
+        model_field: typing.LiteralString | enum.StrEnum | None = None,
         lookup: _DBLookupType | None = None,
         *,
         check_field_exists: bool = True,
