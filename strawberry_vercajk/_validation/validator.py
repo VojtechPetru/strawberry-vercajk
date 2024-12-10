@@ -124,13 +124,17 @@ class InputValidator(pydantic.BaseModel):
         )
 
 
-def pydantic_to_input_type[T: "pydantic.BaseModel"](validator_cls: type[T], /) -> type[ValidatedInput[T]]:
+def pydantic_to_input_type[T: "pydantic.BaseModel"](
+    validator_cls: type[T],
+    /,
+    name: typing.LiteralString | None = None,
+) -> type[ValidatedInput[T]]:
     """
     Return a strawberry input type for given validator.
     """
     from strawberry_vercajk._validation.input_factory import InputFactory
 
-    return InputFactory.make(validator_cls)
+    return InputFactory.make(validator_cls, name=name)
 
 
 def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInterface"]:
