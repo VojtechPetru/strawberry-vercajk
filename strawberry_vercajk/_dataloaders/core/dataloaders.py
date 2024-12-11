@@ -28,7 +28,6 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
     def __new__(
         cls,
         info: strawberry.Info,
-        **kwargs,
     ) -> "BaseDataLoader":
         """
         Returns a dataloader instance.
@@ -43,7 +42,7 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
             )
         loader_key = get_loader_unique_key(cls, cls.Config)  # ensure the loader has a unique key
         if loader_key not in info.context.dataloaders:
-            dl = super().__new__(cls, **kwargs)
+            dl = super().__new__(cls)
             info.context.dataloaders[loader_key] = dl
         return info.context.dataloaders[loader_key]
 
