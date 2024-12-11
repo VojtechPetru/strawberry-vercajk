@@ -14,7 +14,6 @@ import enum
 import typing
 
 import strawberry
-from django.db.models import F, QuerySet
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.sort import OrderingDirection, OrderingNullsPosition
@@ -163,22 +162,6 @@ class SortInput[T: type[enum.StrEnum]]:
 
     def __hash__(self) -> int:
         return hash(tuple(self.ordering))
-
-    def sort_django[ItemsT: QuerySet](self, items: ItemsT) -> ItemsT:  # TODO remove this method
-        return items.order_by(*self.get_django_sort_q())
-
-    def get_django_sort_q(self) -> list[F]:  # TODO remove this method
-        q: list[F] = []
-        for o in self.ordering:
-            f = F(o.field.value)
-            if o.nulls == "first":
-                f = f.asc(nulls_first=True) if o.direction.is_asc else f.desc(nulls_first=True)
-            elif o.nulls == "last":
-                f = f.asc(nulls_last=True) if o.direction.is_asc else f.desc(nulls_last=True)
-            else:
-                f = f.asc() if o.direction.is_asc else f.desc()
-            q.append(f)
-        return q
 
 
 class _SortReverser:
