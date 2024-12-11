@@ -60,5 +60,5 @@ class DjangoListResponseHandler[T: "django.db.models.Model"](BaseListRespHandler
     ) -> django.db.models.QuerySet[T]:
         if filters is strawberry.UNSET:
             return items
-        q = get_django_filter_q(filters.get_filter_q(self.info))
+        q = get_django_filter_q(filters.get_filter_q())
         return items.filter(q)

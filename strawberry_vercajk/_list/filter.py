@@ -12,14 +12,11 @@ import enum
 import functools
 import types
 import typing
-import typing_extensions
 from datetime import date, datetime
 from decimal import Decimal
 
 import pydantic
 import pydantic.fields
-import strawberry
-from strawberry.types.field import StrawberryField
 
 from strawberry_vercajk._base import utils as base_utils
 from strawberry_vercajk._validation.validator import InputValidator, ValidatedInput
@@ -125,13 +122,6 @@ class FilterQ:
         return self._operator == "NOT"
 
 
-@typing_extensions.dataclass_transform(
-    order_default=True,
-    field_specifiers=(
-        StrawberryField,
-        strawberry.field,
-    ),
-)
 def model_filter[T: "FilterSet"](
     model: type,
 ) -> typing.Callable[[type[T]], type[T]]:
@@ -155,12 +145,10 @@ class FilterInterface:
     def get_filter_q(
         self,
         value: typing.Any,  # noqa: ANN401
-        info: strawberry.Info,
     ) -> FilterQ:
         """
         Get the filter expression for the filter.
         :param value: Value to filter by
-        :param info: Info object
         :return: final filter expression
         """
         raise NotImplementedError
@@ -202,9 +190,8 @@ class FilterInterface:
             def get_filter_q(
                 self,
                 value: typing.Any,  # noqa: ANN401
-                info: strawberry.Info,
             ) -> FilterQ:
-                return self.filter1.get_filter_q(value, info) | self.filter2.get_filter_q(value, info)
+                return self.filter1.get_filter_q(value) | self.filter2.get_filter_q(value)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter1.get_filters() + self.filter2.get_filters()
@@ -238,9 +225,8 @@ class FilterInterface:
             def get_filter_q(
                 self,
                 value: typing.Any,  # noqa: ANN401
-                info: strawberry.Info,
             ) -> FilterQ:
-                return self.filter1.get_filter_q(value, info) & self.filter2.get_filter_q(value, info)
+                return self.filter1.get_filter_q(value) & self.filter2.get_filter_q(value)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter1.get_filters() + self.filter2.get_filters()
@@ -272,9 +258,8 @@ class FilterInterface:
             def get_filter_q(
                 self,
                 value: typing.Any,  # noqa: ANN401
-                info: strawberry.Info,
             ) -> FilterQ:
-                return ~self.filter.get_filter_q(value, info)
+                return ~self.filter.get_filter_q(value)
 
             def get_filters(self) -> list["Filter"]:
                 return self.filter.get_filters()
@@ -414,7 +399,6 @@ class Filter(FilterInterface):
     def get_filter_q(
         self,
         value: typing.Any,  # noqa: ANN401
-        info: strawberry.Info,  # noqa: ARG002
     ) -> FilterQ:
         """Get the filter expression for the filter."""
         cleaned_value = self.prepare_value(value)
@@ -497,7 +481,7 @@ class FilterSet(InputValidator):
     def __hash__(self) -> int:
         return hash(tuple([type(self), *list(self.model_dump().items())]))  # noqa: C409
 
-    def get_filter_q(self, info: strawberry.Info) -> FilterQ:
+    def get_filter_q(self) -> FilterQ:
         """Perform the filtering."""
         filters = self.get_filters()
         fq = FilterQ()
@@ -509,7 +493,7 @@ class FilterSet(InputValidator):
             # We may need to handle this some way in the future...
             if input_value is None:
                 continue
-            fq &= field_filter.get_filter_q(input_value, info)
+            fq &= field_filter.get_filter_q(input_value)
         return fq
 
     @classmethod

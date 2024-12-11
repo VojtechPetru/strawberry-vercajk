@@ -83,7 +83,7 @@ class ReverseFKListDataLoader(core.BaseDataLoader):
 
         qs = model.objects.filter(**{f"{reverse_path}__in": keys})
         if filterset:
-            qs = qs.filter(get_django_filter_q(filterset.get_filter_q(info=self.info)))
+            qs = qs.filter(get_django_filter_q(filterset.get_filter_q()))
         if sort:
             qs = qs.order_by(*get_django_order_by(sort))
         if page:

@@ -85,7 +85,7 @@ class M2MListDataLoader(core.BaseDataLoader):
         )
 
         if filterset:
-            target_qs = target_qs.filter(get_django_filter_q(filterset.get_filter_q(info=self.info)))
+            target_qs = target_qs.filter(get_django_filter_q(filterset.get_filter_q()))
         if sort:
             target_qs = target_qs.order_by(*get_django_order_by(sort))
         if page:
