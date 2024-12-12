@@ -1,3 +1,8 @@
+__all__ = [
+    "StrawberryVercajkSettings",
+    "app_settings",
+]
+
 import typing
 
 import pydantic
@@ -6,12 +11,6 @@ import strawberry
 from django.conf import settings as django_settings
 
 SETTINGS_NAME: str = "STRAWBERRY_VERCAJK"
-
-
-__all__ = [
-    "app_settings",
-    "StrawberryVercajkSettings",
-]
 
 
 class ListSettings(typing.TypedDict):

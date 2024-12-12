@@ -18,8 +18,8 @@ _validation_context_var = contextvars.ContextVar("_validation_context_var", defa
 __all__ = [
     "InputValidator",
     "ValidatedInput",
-    "validation_context",
     "pydantic_to_input_type",
+    "validation_context",
 ]
 
 

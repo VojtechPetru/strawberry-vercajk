@@ -7,8 +7,8 @@ import django.db.models
 import django.utils.inspect
 
 __all__ = [
-    "Paginator",
     "Page",
+    "Paginator",
 ]
 
 

@@ -1,10 +1,6 @@
-__all__ = (
-    "BaseDataLoader",
-    "get_loader_unique_key",
-)
+__all__ = ("BaseDataLoader",)
 
 import abc
-import functools
 import typing
 
 import graphql_sync_dataloaders
@@ -13,17 +9,15 @@ import strawberry
 from strawberry_vercajk._dataloaders.core import InfoDataloadersContextMixin
 
 
-class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
-    _batch_load_fn: typing.Callable[[list[K]], list[T]]
-    _cache: dict[K, "graphql_sync_dataloaders.SyncFuture[T]"]
-    _queue: list[tuple[K, "graphql_sync_dataloaders.SyncFuture[T]"]]
+class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoader):
+    _batch_load_fn: typing.Callable[[list[K]], list[R]]
+    _cache: dict[K, "graphql_sync_dataloaders.SyncFuture[R]"]
+    _queue: list[tuple[K, "graphql_sync_dataloaders.SyncFuture[R]"]]
 
     # serves two purposes:
     # 1. "mark" that the class instance was already created
     # 2. don't allow creating more than one instance of the class (see __init__)
     _instance_cache: type[typing.Self] | None = None
-
-    Config: typing.ClassVar[dict]
 
     def __new__(
         cls,
@@ -41,30 +35,43 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
                 # TODO write setup guide (custom Info class with overridden context property to `schema`)
                 "strawberry.Info.context must be an instance of `strawberry_vercajk.InfoDataloadersContextMixin`.",
             )
-        loader_key = get_loader_unique_key(cls, cls.Config)  # ensure the loader has a unique key
-        if loader_key not in info.context.dataloaders:
+        if cls not in info.context.dataloaders:
             dl = super().__new__(cls)
-            info.context.dataloaders[loader_key] = dl
-        return info.context.dataloaders[loader_key]
+            info.context.dataloaders[cls] = dl
+        return info.context.dataloaders[cls]
 
-    def __init__(self, info: strawberry.Info) -> None:
+    def __init__(
+        self,
+        info: strawberry.Info,
+    ) -> None:
         if self._instance_cache is None:
-            self._instance_cache = info.context.dataloaders[self.unique_key]
+            self._instance_cache = info.context.dataloaders[type(self)]
             self.info = info
-            super().__init__(batch_load_fn=self.load_fn)
+            super().__init__(batch_load_fn=self._processed_load_fn)
 
+    @property
     @abc.abstractmethod
-    def load_fn(self, keys: list[K]) -> list[T]:
+    def load_fn(self) -> typing.Callable[[list[K]], list[R] | typing.Mapping[K, R]]:
         """
-        Get a list of keys and return a list of data-loaded values.
-        Beware that the values must be in the same order as the keys!
+        Function to load the raw results.
+        Results can then be further processed by overriding `process_results`.
         """
         raise NotImplementedError
 
-    def prime(self, key: K, value: T, force: bool = False) -> None:
+    def process_results(self, keys: list[K], results: list[R] | typing.Mapping[K, R]) -> list[R]:  # noqa: ARG002
+        """
+        Hook for subclasses to implement custom processing of the results.
+        """
+        return results
+
+    def _processed_load_fn(self, keys: list[K]) -> list[R]:
+        results = self.load_fn(keys)
+        return self.process_results(keys, results)
+
+    def prime(self, key: K, value: R, force: bool = False) -> None:
         self.prime_many({key: value}, force)
 
-    def prime_many(self, data: typing.Mapping[K, T], force: bool = False) -> None:
+    def prime_many(self, data: typing.Mapping[K, R], force: bool = False) -> None:
         # Populate the cache with the specified values
         for key, value in data.items():
             if not self._cache.get(key) or force:
@@ -77,13 +84,3 @@ class BaseDataLoader[K, T](graphql_sync_dataloaders.SyncDataLoader):
             for task_key, task_future in self._queue:
                 if task_key in data:
                     task_future.set_result(data[task_key])
-
-    @functools.cached_property
-    def unique_key(self) -> int:
-        return get_loader_unique_key(type(self), self.Config)
-
-
-def get_loader_unique_key(loader: type["BaseDataLoader"], config: dict[str, ...]) -> int:
-    """Return a *unique* key for the dataloader class."""
-    # the dataloader is uniquely identified by its class and its configuration
-    return hash(tuple([(key, value) for key, value in config.items() if value is not None] + [(loader.__name__,)]))
