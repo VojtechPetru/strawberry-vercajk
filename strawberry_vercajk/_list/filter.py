@@ -8,7 +8,6 @@ __all__ = [
 
 import abc
 import dataclasses
-import enum
 import functools
 import types
 import typing
@@ -288,7 +287,7 @@ class Filter(FilterInterface):
 
     def __init__(
         self,
-        model_field: typing.LiteralString | enum.StrEnum | None = None,
+        model_field: str | None = None,
         lookup: _DBLookupType | None = None,
         *,
         check_field_exists: bool = True,
