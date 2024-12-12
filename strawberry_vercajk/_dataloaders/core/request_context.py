@@ -1,3 +1,6 @@
+__all__ = [
+    "InfoDataloadersContextMixin",
+]
 import dataclasses
 import typing
 
@@ -5,11 +8,6 @@ import strawberry
 
 if typing.TYPE_CHECKING:
     from strawberry_vercajk._dataloaders import BaseDataLoader
-
-
-__all__ = [
-    "InfoDataloadersContextMixin",
-]
 
 
 @dataclasses.dataclass
@@ -24,4 +22,4 @@ class InfoDataloadersContextMixin:
     ...     pass
     """
 
-    dataloaders: dict[int, "BaseDataLoader"] = strawberry.field(default_factory=dict)  # key = loader unique key
+    dataloaders: dict[type["BaseDataLoader"], "BaseDataLoader"] = strawberry.field(default_factory=dict)

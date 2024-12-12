@@ -8,7 +8,7 @@ from strawberry_vercajk import (
     PageInput, model_sort_enum, SortInput, model_filter, FilterSet, Filter,
     pydantic_to_input_type,
 )
-from strawberry_vercajk._dataloaders import PKDataLoader, ReverseFKDataLoader, M2MDataLoader
+from strawberry_vercajk._dataloaders import PKDataLoader, FKDataLoader, M2MDataLoader
 from tests.app import models
 from tests.app.graphql.types import FruitEaterSortEnum, FruitEaterFilterSet
 
@@ -25,7 +25,7 @@ class ColorPKDataLoader(PKDataLoader):
     }
 
 
-class FruitReverseOneToOneDataLoader(ReverseFKDataLoader):
+class FruitReverseOneToOneDataLoader(FKDataLoader):
     Config = {
         "field_descriptor": models.FruitPlant.fruit,
     }
@@ -37,13 +37,13 @@ class FruitPlantPKDataLoader(PKDataLoader):
     }
 
 
-class FruitEatersReverseFKDataLoader(ReverseFKDataLoader):
+class FruitEatersReverseFKDataLoader(FKDataLoader):
     Config = {
         "field_descriptor": models.FruitEater.favourite_fruit,
     }
 
 
-class FruitPlantFruitReverseOneToOneDataLoader(ReverseFKDataLoader):
+class FruitPlantFruitReverseOneToOneDataLoader(FKDataLoader):
     Config = {
         "field_descriptor": models.Fruit.plant,
     }
