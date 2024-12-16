@@ -73,7 +73,7 @@ class FKListDataLoaderFn[K: typing.Hashable, R]:
     def page(self) -> "PageInput":
         from strawberry_vercajk import PageInput
 
-        return self._page or PageInput(page_number=1, page_size=app_settings.DEFAULT_PAGE_SIZE)
+        return self._page or PageInput(page_number=1, page_size=app_settings.LIST.DEFAULT_PAGE_SIZE)
 
 
 class FKListDataLoader[K: typing.Hashable, R](core.BaseDataLoader[K, R]):  # TODO test
