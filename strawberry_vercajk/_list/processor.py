@@ -25,6 +25,8 @@ class BaseListRespHandler[T](abc.ABC):
     Groups logic for processing a common list request - handles pagination, sorting, filtering.
     """
 
+    paginator_cls: type[Paginator[T]] = Paginator
+
     def __init__(
         self,
         items: ItemsType[T],
@@ -70,8 +72,8 @@ class BaseListRespHandler[T](abc.ABC):
         :param page: The pagination to apply.
         """
         if not page:
-            return Paginator[T](items, per_page=app_settings.LIST.DEFAULT_PAGE_SIZE).get_page(1)
-        return Paginator[T](items, per_page=page.page_size).get_page(page.page_number)
+            return cls.paginator_cls[T](items, per_page=app_settings.LIST.DEFAULT_PAGE_SIZE).get_page(1)
+        return cls.paginator_cls[T](items, per_page=page.page_size).get_page(page.page_number)
 
     @abc.abstractmethod
     def apply_sorting(

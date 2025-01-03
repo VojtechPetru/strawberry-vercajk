@@ -7,7 +7,15 @@ from ._dataloaders.pk_dataloader import PKDataLoader
 from ._dataloaders.fk_dataloader import FKDataLoader
 from ._dataloaders.fk_list_dataloader import FKListDataLoader, FKListDataLoaderFn
 
-from ._id_hasher import HashID, HashIDUnion, hash_id_register, IDHasher, HashIDRegistry, HashIDUnionRegistry, HashedID
+from ._id_hasher import (
+    HashID,
+    HashIDUnion,
+    hash_id_register,
+    IDHasher,
+    HashIDRegistry,
+    HashIDUnionRegistry,
+    HashedID,
+)
 
 from ._list.filter import FilterSet, Filter, FilterQ, model_filter, FilterSetInput
 from ._list.graphql import (
@@ -35,7 +43,7 @@ from ._validation.gql_types import (
     ConstraintDataType,
 )
 from ._validation.directives import FieldConstraintsDirective
-from ._validation.input_factory import InputFactory
+from ._validation.input_factory import InputFactory, GqlTypeAnnot
 from ._validation.validator import ValidatedInput, InputValidator, pydantic_to_input_type
 
 from ._scalars import IntStr

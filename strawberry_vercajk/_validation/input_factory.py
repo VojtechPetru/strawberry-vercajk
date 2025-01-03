@@ -1,3 +1,7 @@
+__all__ = [
+    "GqlTypeAnnot",
+    "InputFactory",
+]
 import dataclasses
 import types
 import typing
@@ -12,10 +16,6 @@ from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._validation import constants, directives
 from strawberry_vercajk._validation.validator import ValidatedInput
 
-__all__ = [
-    "InputFactory",
-]
-
 # GraphQL doesn't support working with larger integers than this.
 # We could define custom scalar, but for now it's not necessary.
 # See https://github.com/graphql/graphql-spec/issues/73.
@@ -25,6 +25,25 @@ DIRECTIVE_MIN: int = -DIRECTIVE_MAX
 
 def _none_to_empty_string(value: typing.Any) -> typing.Any:  # noqa: ANN401
     return "" if value is None else value
+
+
+class GqlTypeAnnot:
+    """
+    Annotate a pydantic model with a GraphQL type.
+
+    Example:
+    -------
+        class UserValidator(pydantic.BaseModel):
+            id: typing.Annotated[int, GqlTypeAnnot(strawberry.ID)]
+            name: str
+
+    Now when creating a GraphQL input type from `UserValidator` via `InputFactory.make(UserValidator)`,
+    the `id` field will be annotated with `strawberry.ID` in the GraphQL schema.
+
+    """
+
+    def __init__(self, gql_type: type | types.UnionType, /) -> None:
+        self.gql_type = gql_type
 
 
 class InputFactory:
@@ -66,6 +85,7 @@ class InputFactory:
             field_type, field_convertors = cls._get_field_annotation(
                 field_info.annotation,
                 is_required=field_info.is_required(),
+                field_metadata=field_info.metadata,
             )
             field_convertors_any = field_convertors_any or field_convertors
             if field_convertors:
@@ -114,6 +134,7 @@ class InputFactory:
         field_type: type,
         /,
         is_required: bool,
+        field_metadata: list | None = None,
     ) -> tuple[type, list[pydantic.BeforeValidator | pydantic.AfterValidator]]:
         """
         Get the annotation for a strawberry field.
@@ -130,6 +151,10 @@ class InputFactory:
 
         """
         # TODO - this function is a bit too complex and should probably be refactored or split up.
+        for meta in field_metadata or []:
+            if isinstance(meta, GqlTypeAnnot):
+                return meta.gql_type, []
+
         field_type = cls._get_origin_type_from_annotated_type(field_type)
         type_map = app_settings.VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE
         if field_type in type_map:

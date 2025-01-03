@@ -89,20 +89,43 @@ class PageInput:
         description=f"Page number. Minimum value is 1, maximum is {_MAX_PAGE_NUMBER:,}.",
     )
     page_size: int = strawberry.field(
-        default=1,
+        default=10,
         description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.LIST.MAX_PAGE_SIZE}.",
     )
+
+    @classmethod
+    def __class_getitem__(cls, max_page_size: int) -> type[typing.Self]:
+        """
+        Ugly dirty hack which allows us to set the max_page_size for the class without having to create a new class.
+
+        Usage example in a gql query:
+
+        >>> @strawberry.field()
+        ... def some_list(
+        ...    self,
+        ...    page: PageInput[123] | None = strawberry.UNSET,
+        ... ) -> ...:
+
+        Makes the input list have a max_page_size set to 123.
+        """
+
+        class ClsCopy(cls):
+            pass
+
+        ClsCopy.__max_page_size__ = max_page_size
+        return ClsCopy
 
     def __setattr__(
         self,
         key: str,
         value: typing.Any,  # noqa: ANN401
     ) -> None:
+        max_page_size = getattr(self, "__max_page_size__", app_settings.LIST.MAX_PAGE_SIZE)
         if key == "page_number":
             value = min(value, _MAX_PAGE_NUMBER)
             value = max(value, 1)
         elif key == "page_size":
-            value = min(value, app_settings.LIST.MAX_PAGE_SIZE)
+            value = min(value, max_page_size)
             value = max(value, 1)
         super().__setattr__(key, value)
 
@@ -162,22 +185,3 @@ class SortInput[T: type[enum.StrEnum]]:
 
     def __hash__(self) -> int:
         return hash(tuple(self.ordering))
-
-
-class _SortReverser:
-    """Reverses the order of the given object."""
-
-    def __init__(
-        self,
-        obj: typing.Any,  # noqa: ANN401
-    ) -> None:
-        self.obj = obj
-
-    def __eq__(self, other: "_SortReverser") -> bool:
-        return other.obj == self.obj
-
-    def __lt__(
-        self,
-        other: "_SortReverser",
-    ) -> bool:
-        return other.obj < self.obj

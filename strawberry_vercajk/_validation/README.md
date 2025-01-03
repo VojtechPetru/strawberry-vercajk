@@ -178,6 +178,21 @@ For a way to extract the schema directives on FE, see [FE vercajk repo](https://
 >:warning: Make sure to secure this query as you would any other introspection query!
 
 
+## Setting custom GraphQL types for the Validation models
+There are 2 ways to set custom GraphQL types for the validation models.
+They can either be set globally for a type via settings (`VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE` mapping).
+See `AppValidationSettings` for more details and default mappings.
+
+Alternatively, you can set the custom type directly per model field by using the `GqlTypeAnnot` annotation.
+For example:
+
+```python
+class UserUpdateValidator(pydantic.BaseModel):
+    id: typing.Annotated[int, strawberry_vercajk.GqlTypeAnnot(strawberry.ID)]
+    name: str
+```
+The `id` field will be converted to `ID` type in the generated Strawberry input type when using `pydantic_to_input_type`.
+
 ## Unified interface for error response types
 All errors returned by BE should inherit from `straqberry_vercajk.ErrorInterface`.
 This ensures that FE can have a fallback `... on ErrorInterface` in case of new errors added by BE.

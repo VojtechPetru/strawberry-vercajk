@@ -1,3 +1,10 @@
+__all__ = [
+    "BaseIDHasher",
+    "HasherType",
+    "IDHasher",
+    "SingleIDSqids",
+]
+import abc
 import functools
 import typing
 
@@ -10,13 +17,33 @@ import strawberry.types.scalar
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._id_hasher import exceptions
 
-_SQUIDS = sqids.Sqids(
+
+class HasherType[T](typing.Protocol):
+    def encode(self, raw_id: T) -> str: ...
+
+    def decode(self, value: str) -> T: ...
+
+
+class SingleIDSqids(sqids.Sqids):
+    """Wrapper around Sqids to hash only one ID at a time."""
+
+    def encode(self, raw_id: int) -> str:
+        return super().encode([raw_id])
+
+    def decode(self, hashed_id: str) -> int:
+        decoded_id = super().decode(hashed_id)
+        if len(decoded_id) != 1:
+            raise ValueError(f"Invalid ID input '{hashed_id}'.")
+        return decoded_id[0]
+
+
+_SQUIDS = SingleIDSqids(
     alphabet=app_settings.ID_HASHER.ALPHABET,
     min_length=app_settings.ID_HASHER.MIN_LENGTH,
 )
 
 
-class IDHasher:
+class BaseIDHasher(abc.ABC):
     """Takes care of generating hashed IDs for a given database model and creates a GQL scalar type for it."""
 
     PREFIX_SEPARATOR: typing.ClassVar[typing.LiteralString] = "_"
@@ -73,7 +100,7 @@ class IDHasher:
     def _hash_id_serializer(cls, id_: int, /, model: type) -> str:
         """Return the hashed ID for the given ID."""
         hasher = cls(model)
-        return f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}{hasher.id_hasher.encode([id_])}"  # noqa: SLF001
+        return f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}{hasher.id_hasher.encode(id_)}"  # noqa: SLF001
 
     @classmethod
     def _hash_id_parser(
@@ -96,11 +123,7 @@ class IDHasher:
         hashed_id = typing.cast(str, hashed_id)  # at this point, we know it's a string (validated above)
 
         hashid_prefix = f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}"  # noqa: SLF001
-        decoded = hasher.id_hasher.decode(hashed_id.removeprefix(hashid_prefix))
-        if len(decoded) != 1:
-            # This should not be happening, because we always hash only one value (see to_hash_id method)
-            raise cls.InvalidHashID(f"Invalid ID input '{hashed_id}'.")
-        return decoded[0]
+        return hasher.id_hasher.decode(hashed_id.removeprefix(hashid_prefix))
 
     @staticmethod
     def _scalar_pydantic_core_schema(
@@ -129,8 +152,8 @@ class IDHasher:
         return HashIDRegistry.get_model_prefix(self.model)
 
     @property
-    def id_hasher(self) -> sqids.Sqids:
-        return _SQUIDS
+    @abc.abstractmethod
+    def id_hasher(self) -> HasherType: ...
 
     def validate_hash_id(
         self,
@@ -169,3 +192,9 @@ class IDHasher:
         if other_model:
             error_msg += f" Received {HashIDRegistry.get_model_gql_scalar_name(other_model)} instead."
         raise self.InvalidHashID(error_msg)
+
+
+class IDHasher(BaseIDHasher):
+    @property
+    def id_hasher(self) -> SingleIDSqids:
+        return _SQUIDS
