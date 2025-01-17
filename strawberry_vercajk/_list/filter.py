@@ -128,9 +128,6 @@ def model_filter[T: "FilterSet"](
     def wrapper(
         filterset_cls: type[T],
     ) -> type[T]:
-        if hasattr(filterset_cls, _FILTER_MODEL_ATTR_NAME):
-            # Seems like an edge case. Decide what to do if this happens, maybe namespace the attribute better.
-            raise ValueError(f"`{_FILTER_MODEL_ATTR_NAME}` is already set for `{filterset_cls.__name__}`.")
         setattr(filterset_cls, _FILTER_MODEL_ATTR_NAME, model)
         filterset_cls._initialize_filters()  # noqa: SLF001
         return filterset_cls

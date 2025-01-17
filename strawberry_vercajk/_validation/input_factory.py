@@ -147,7 +147,7 @@ class InputFactory:
             - We also convert `typing.Literal[""]` to `None` so that the field appears as optional in the gql schema.
               We then convert None back to empty string when data is received.
             - We replace more complex or custom pydantic types with types understandable by strawberry.
-              See `app_settings.VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE`.
+              See `app_settings.VALIDATION.PYDANTIC_TO_GQL_INPUT_TYPE` and `GqlTypeAnnot` for more details.
 
         """
         # TODO - this function is a bit too complex and should probably be refactored or split up.
@@ -270,7 +270,7 @@ class InputFactory:
                 return None
             if isinstance(value, int):
                 return min(max(DIRECTIVE_MIN, value), DIRECTIVE_MAX)
-            return value if value is not pydantic_core.PydanticUndefined else None
+            return value
 
         pydantic_adapter = pydbull.PydanticAdapter(type(input_validator))
         return directives.FieldConstraintsDirective(

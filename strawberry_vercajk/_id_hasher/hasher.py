@@ -37,12 +37,6 @@ class SingleIDSqids(sqids.Sqids):
         return decoded_id[0]
 
 
-_SQUIDS = SingleIDSqids(
-    alphabet=app_settings.ID_HASHER.ALPHABET,
-    min_length=app_settings.ID_HASHER.MIN_LENGTH,
-)
-
-
 class BaseIDHasher(abc.ABC):
     """Takes care of generating hashed IDs for a given database model and creates a GQL scalar type for it."""
 
@@ -195,6 +189,21 @@ class BaseIDHasher(abc.ABC):
 
 
 class IDHasher(BaseIDHasher):
+    @classmethod
+    def __get_cls_id_hasher(cls) -> SingleIDSqids:
+        attr: str = "__cls_id_hasher__"
+        if id_hasher := getattr(cls, attr, None):
+            return id_hasher
+        setattr(
+            cls,
+            attr,
+            SingleIDSqids(
+                alphabet=app_settings.ID_HASHER.ALPHABET,
+                min_length=app_settings.ID_HASHER.MIN_LENGTH,
+            ),
+        )
+        return getattr(cls, attr)
+
     @property
     def id_hasher(self) -> SingleIDSqids:
-        return _SQUIDS
+        return self.__get_cls_id_hasher()
