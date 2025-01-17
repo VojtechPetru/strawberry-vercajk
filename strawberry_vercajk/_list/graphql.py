@@ -90,7 +90,7 @@ class PageInput:
     )
     page_size: int = strawberry.field(
         default=10,
-        description=f"Number of items returned. Minimum value is 1, maximum is {app_settings.LIST.MAX_PAGE_SIZE}.",
+        description="Number of items returned.",
     )
 
     @classmethod
