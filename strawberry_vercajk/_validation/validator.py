@@ -18,6 +18,7 @@ _validation_context_var = contextvars.ContextVar("_validation_context_var", defa
 __all__ = [
     "InputValidator",
     "ValidatedInput",
+    "build_errors",
     "pydantic_to_input_type",
     "validation_context",
 ]
@@ -59,7 +60,7 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
                     cleaned_data: CleanDataType = self.to_pydantic(is_inner=False)
                 except pydantic.ValidationError as e:
                     self.clean_data = None
-                    self.errors = _build_errors(e)
+                    self.errors = build_errors(e)
                 else:
                     self.errors = []
                     self.clean_data = cleaned_data
@@ -137,7 +138,7 @@ def pydantic_to_input_type[T: "pydantic.BaseModel"](
     return InputFactory.make(validator_cls, name=name)
 
 
-def _build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInterface"]:
+def build_errors(exc: "pydantic.ValidationError") -> list["gql_types.ErrorInterface"]:
     errors: list[gql_types.ErrorInterface] = []
     locations_with_type_union_errors: set[tuple[str, ...]] = set()
     for error in exc.errors():
