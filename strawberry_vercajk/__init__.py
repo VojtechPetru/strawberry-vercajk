@@ -44,6 +44,6 @@ from ._validation.gql_types import (
 )
 from ._validation.directives import FieldConstraintsDirective
 from ._validation.input_factory import InputFactory, GqlTypeAnnot
-from ._validation.validator import ValidatedInput, InputValidator, pydantic_to_input_type, build_errors
+from ._validation.validator import ValidatedInput, InputValidator, pydantic_to_input_type, build_errors, set_gql_params
 
 from ._scalars import IntStr

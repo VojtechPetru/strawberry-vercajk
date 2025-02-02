@@ -260,3 +260,27 @@ def test_hashed_id_annotated_field_valid_value() -> None:
     assert isinstance(input_data.clean_data.some_id_list[0], strawberry_vercajk.HashedID)
     assert input_data.clean_data.some_id_optional is None
     assert isinstance(input_data.clean_data.some_id_annotated, strawberry_vercajk.HashedID)
+
+
+def test_validator_via_class_getitem() -> None:
+    class Model(pydantic.BaseModel):
+        a: int
+        b: int
+
+    input_type = strawberry_vercajk.ValidatedInput[Model]
+    input_data = input_type(a=1, b=2)
+    errors = input_data.clean()
+    assert len(errors) == 0
+    assert type(input_data.clean_data) is Model
+    assert input_data.clean_data.a == 1
+    assert input_data.clean_data.b == 2
+
+
+def test_set_gql_params_gql_name() -> None:
+    @strawberry_vercajk.set_gql_params(name="SomeName")
+    class Model(pydantic.BaseModel):
+        a: int
+        b: int
+
+    input_type = strawberry_vercajk.ValidatedInput[Model]
+    assert input_type.__strawberry_definition__.name == "SomeName"

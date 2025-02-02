@@ -1,4 +1,4 @@
-from email.headerregistry import Address
+from tests.test_validation.test_readme_examples import UserCreateInputValidatorfrom email.headerregistry import Address
 
 # (Input) Validation
 This module provides 
@@ -16,26 +16,24 @@ import pydantic
 import strawberry_vercajk
 
 
+@strawberry_vercajk.set_gql_params(name="CompanyInput")
 class CompanyInputValidator(strawberry_vercajk.InputValidator):
     name: typing.Annotated[str, pydantic.Field(min_length=5, max_length=50, pattern=r"^[A-Z].*")]
 
 
+@strawberry_vercajk.set_gql_params(name="AddressInput")
 class AddressInputValidator(strawberry_vercajk.InputValidator):
     street: typing.Annotated[str, pydantic.Field(min_length=5, max_length=100)]
     city: typing.Annotated[str, pydantic.Field(min_length=5, max_length=10)]
     postal_code: typing.Annotated[str, pydantic.Field(min_length=5, max_length=10)]
 
 
+@strawberry_vercajk.set_gql_params(name="UserCreateInput")
 class UserCreateInputValidator(strawberry_vercajk.InputValidator):
     name: typing.Annotated[str, pydantic.Field(min_length=5, max_length=100, pattern=r"^[A-Z].*")]
     company: CompanyInputValidator
     addresses: typing.Annotated[list[AddressInputValidator], pydantic.Field(min_length=1)]
     age: typing.Annotated[int, pydantic.Field(ge=0, le=150)]
-
-
-UserCreateGqlInput = strawberry_vercajk.pydantic_to_input_type(UserCreateInputValidator)
-AddressGqlInput = strawberry_vercajk.pydantic_to_input_type(AddressInputValidator)
-CompanyGqlInput = strawberry_vercajk.pydantic_to_input_type(CompanyInputValidator)
 ```
 
 >[!TIP]
@@ -94,7 +92,7 @@ class Mutation:
     def user_create(
             self,
             inp: typing.Annotated[
-                UserCreateGqlInput,
+                strawberry_vercajk.ValidatedInput[UserCreateInputValidator],
                 strawberry.argument(name="input"),
             ],
     ) -> typing.Annotated[
@@ -226,7 +224,7 @@ class Mutation:
     @strawberry.mutation
     def user_create(
             self,
-            input: UserCreateGqlInput,
+            input: strawberry_vercajk.ValidatedInput[UserCreateInputValidator],
     ) -> typing.Annotated[
         UserCreateErrorType | UserType,
         strawberry.union(name="UserCreateResponse"),

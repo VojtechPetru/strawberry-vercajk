@@ -1,7 +1,16 @@
+__all__ = [
+    "InputValidator",
+    "ValidatedInput",
+    "build_errors",
+    "pydantic_to_input_type",
+    "set_gql_params",
+    "validation_context",
+]
 import contextlib
 import contextvars
 import logging
 import typing
+import warnings
 
 import pydantic
 from strawberry.utils.str_converters import to_camel_case
@@ -15,14 +24,6 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 _validation_context_var = contextvars.ContextVar("_validation_context_var", default=None)
 
-__all__ = [
-    "InputValidator",
-    "ValidatedInput",
-    "build_errors",
-    "pydantic_to_input_type",
-    "validation_context",
-]
-
 
 @contextlib.contextmanager
 def validation_context(value: dict[str, typing.Any]) -> typing.Iterator[None]:
@@ -33,6 +34,29 @@ def validation_context(value: dict[str, typing.Any]) -> typing.Iterator[None]:
         _validation_context_var.reset(token)
 
 
+def set_gql_params[V: "ValidatedInput"](
+    *,
+    name: str,
+) -> typing.Callable[[type[V]], type[V]]:
+    """
+    Decorator to set gql params on the input type, used when converting pydantic validators to strawberry input types
+    via `pydantic_to_input_type` (or `InputFactory.make`).
+    :param name: The name of the gql type.
+
+    Example:
+        >>> @set_gql_params(name="CustomerCreateInput")
+        ... class CustomerCreateWithAddressInput(ValidatedInput):
+        ...     ...
+
+    """
+
+    def wrapper(validator: type[V]) -> type[V]:
+        setattr(validator, constants.INPUT_VALIDATOR_GQL_NAME, name)
+        return validator
+
+    return wrapper
+
+
 class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
     """A class to be used to validate input data. Used on `strawberry.experimental.pydantic.input` types."""
 
@@ -40,6 +64,15 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
     __errors: list["gql_types.ErrorInterface"] | None = UNSET
     __strawberry_definition__: typing.ClassVar["strawberry.types.base.StrawberryObjectDefinition"]
     # _pydantic_type: type[CleanDataType]  # set by strawberry - use `get_validator` method instead
+
+    @classmethod
+    def __class_getitem__(cls, item: type[CleanDataType] | typing.TypeVar) -> type["ValidatedInput[CleanDataType]"]:
+        if typing.TYPE_CHECKING or isinstance(item, typing.TypeVar):
+            # Type checking - workaround for cases as
+            # `def pydantic_to_input_type[T: "pydantic.BaseModel"](...) -> type[ValidatedInput[T]]: ...`
+            # or `class FilterSetInput[T: FilterSet](ValidatedInput[T]): ...`
+            return cls
+        return pydantic_to_input_type(item)
 
     def clean(
         self,
@@ -125,7 +158,7 @@ class InputValidator(pydantic.BaseModel):
         )
 
 
-def pydantic_to_input_type[T: "pydantic.BaseModel"](
+def pydantic_to_input_type[T: "pydantic.BaseModel"](  # TODO - remove and internally use InputFactory directly
     validator_cls: type[T],
     /,
     name: typing.LiteralString | None = None,
@@ -133,6 +166,13 @@ def pydantic_to_input_type[T: "pydantic.BaseModel"](
     """
     Return a strawberry input type for given validator.
     """
+    warnings.warn(
+        "Use `ValidatedInput[<validatorCls>]` instead of `pydantic_to_input_type(<validatorCls>)`. "
+        "This function will be removed in the future. "
+        "To set the gql name, use `@set_gql_params(name='...')` decorator on the `validatorCls`.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     from strawberry_vercajk._validation.input_factory import InputFactory
 
     return InputFactory.make(validator_cls, name=name)

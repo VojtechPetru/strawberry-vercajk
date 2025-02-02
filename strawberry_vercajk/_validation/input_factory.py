@@ -70,7 +70,10 @@ class InputFactory:
             return cls._REGISTRY[input_validator]
 
         if name is None:
-            name = typing.cast(typing.LiteralString, input_validator.__name__.removesuffix("Validator"))
+            if hasattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME):
+                name = getattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME)
+            else:
+                name = typing.cast(typing.LiteralString, input_validator.__name__.removesuffix("Validator"))
 
         fields = input_validator.__pydantic_fields__.copy()
         for field_info in fields.values():
