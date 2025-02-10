@@ -180,7 +180,7 @@ class SortFieldInput[T: enum.StrEnum]:
     "The order ordering is important. "
     "The first ordering is the primary ordering, the second is the secondary ordering, etc.",
 )
-class SortInput[T: type[enum.StrEnum]]:
+class SortInput[T: enum.StrEnum]:
     ordering: list[SortFieldInput[T]]
 
     def __hash__(self) -> int:

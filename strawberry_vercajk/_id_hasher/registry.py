@@ -21,8 +21,8 @@ class HashIDRegistry:
 
     _REGISTRY: typing.ClassVar[dict[type, type[strawberry.ID]]] = {}
     _PREFIX_TO_MODEL_REGISTRY: typing.ClassVar[dict[str, type]] = {}
-    _MODEL_TO_PREFIX_REGISTRY: typing.ClassVar[dict[type, str]] = {}
-    _MODEL_TO_GQL_SCALAR_NAME_REGISTRY: typing.ClassVar[dict[type, str]] = {}
+    _MODEL_TO_PREFIX_REGISTRY: typing.ClassVar[dict[type, typing.LiteralString]] = {}
+    _MODEL_TO_GQL_SCALAR_NAME_REGISTRY: typing.ClassVar[dict[type, typing.LiteralString]] = {}
 
     # Exceptions
     HashIDNotRegistered = exceptions.HashIDNotRegisteredError
@@ -91,14 +91,20 @@ class HashIDRegistry:
         return IDHasher(model)
 
     @classmethod
-    def get_model_prefix(cls, model: type) -> typing.LiteralString | None:
+    def get_model_prefix(cls, model: type) -> typing.LiteralString:
         """Return the Hash ID prefix for the given model."""
-        return cls._MODEL_TO_PREFIX_REGISTRY.get(model)
+        try:
+            return cls._MODEL_TO_PREFIX_REGISTRY[model]
+        except KeyError as e:
+            raise cls.HashIDNotRegistered(f"Hash ID for `{model.__name__}` not registered.") from e
 
     @classmethod
-    def get_model_gql_scalar_name(cls, model: type) -> typing.LiteralString | None:
+    def get_model_gql_scalar_name(cls, model: type) -> typing.LiteralString:
         """Return the Hash ID GQL scalar name for the given model."""
-        return cls._MODEL_TO_GQL_SCALAR_NAME_REGISTRY.get(model)
+        try:
+            return cls._MODEL_TO_GQL_SCALAR_NAME_REGISTRY[model]
+        except KeyError as e:
+            raise cls.HashIDNotRegistered(f"Hash ID for `{model.__name__}` not registered.") from e
 
     @classmethod
     def get_model_from_gql_scalar_name(
@@ -234,8 +240,6 @@ class HashIDUnionRegistry:
         scalar_names: list[str] = []
         for model in models:
             hash_id_scalar_name = HashIDRegistry.get_model_gql_scalar_name(model=model)
-            if not hash_id_scalar_name:
-                raise HashIDRegistry.HashIDNotRegistered(f"Hash ID for `{model.__name__}` not registered.")
             scalar_names.append(hash_id_scalar_name)
         return sorted(scalar_names)
 
@@ -297,16 +301,9 @@ class _HashID:
         class SomeType:
             id: HashID(SomeModel)
             ...
-
-    Optionally, you can also input the database model as a string with the registered prefix, like HashID("<prefix>").
     """
 
-    def __call__(self, model: type | typing.LiteralString) -> type[strawberry.ID]:
-        if isinstance(model, str):
-            model_prefix = model
-            model = HashIDRegistry.get_model_by_prefix(model)
-            if not model:
-                raise HashIDRegistry.HashIDNotRegistered(f"Hash ID for prefix `{model_prefix}` not registered.")
+    def __call__(self, model: type) -> type[strawberry.ID]:
         return HashIDRegistry.get(model)
 
 

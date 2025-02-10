@@ -13,7 +13,7 @@ from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
 
 if typing.TYPE_CHECKING:
-    from strawberry_vercajk import FilterQ, FilterSetInput, ListInnerType, PageInput, SortInput
+    from strawberry_vercajk import FilterQ, ListInnerType, PageInput, SortInput, ValidatedInput
 
 
 class LoadFn(typing.Protocol):
@@ -39,7 +39,7 @@ class FKListDataLoaderFn[K: typing.Hashable, R]:
         /,
         page: "PageInput|None" = None,
         sort: "SortInput|None" = None,
-        filters: "FilterSetInput|None" = None,
+        filters: "ValidatedInput|None" = None,
     ) -> None:
         self._page = page
         self._sort = sort
@@ -101,7 +101,7 @@ class FKListDataLoader[K: typing.Hashable, R](core.BaseDataLoader[K, R]):  # TOD
             @strawberry.field
             def blog_posts(
                 self: "models.User",
-                filters: <strawberry_vercajk.FilterSetInput instance> | None = strawberry.UNSET,
+                filters: <strawberry_vercajk.ValidatedInput instance> | None = strawberry.UNSET,
                 sort: strawberry_vercajk.SortInput[BlogPostSortChoices] | None = strawberry.UNSET,
                 page: strawberry_vercajk.PageInput | None = strawberry.UNSET,
                 info: "Info",

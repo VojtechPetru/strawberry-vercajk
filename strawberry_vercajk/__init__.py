@@ -17,7 +17,7 @@ from ._id_hasher import (
     HashedID,
 )
 
-from ._list.filter import FilterSet, Filter, FilterQ, model_filter, FilterSetInput
+from ._list.filter import FilterSet, Filter, FilterQ, model_filter
 from ._list.graphql import (
     PageInnerMetadataType,
     PageMetadataType,

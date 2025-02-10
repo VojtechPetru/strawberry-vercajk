@@ -10,7 +10,8 @@ from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
 from strawberry_vercajk._list.page import Page, Paginator
 
 if typing.TYPE_CHECKING:
-    from strawberry_vercajk._list.filter import FilterSet, FilterSetInput
+    from strawberry_vercajk import ValidatedInput
+    from strawberry_vercajk._list.filter import FilterSet
 
 
 class ItemsType[T](typing.Protocol):
@@ -39,7 +40,7 @@ class BaseListRespHandler[T](abc.ABC):
         self,
         page: "PageInput|None" = strawberry.UNSET,
         sort: "SortInput|None" = strawberry.UNSET,
-        filters: "FilterSetInput|None" = strawberry.UNSET,
+        filters: "ValidatedInput|None" = strawberry.UNSET,
     ) -> ListType[T]:
         """
         Processes the given object list request data and returns the response.

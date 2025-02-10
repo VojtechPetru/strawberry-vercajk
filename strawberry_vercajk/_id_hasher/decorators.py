@@ -1,4 +1,3 @@
-import functools
 import typing
 
 
@@ -18,7 +17,6 @@ def hash_id_register[T: object](
 
     """
 
-    @functools.wraps(hash_id_register)
     def wrapper(
         model: type[T],
     ) -> type[T]:

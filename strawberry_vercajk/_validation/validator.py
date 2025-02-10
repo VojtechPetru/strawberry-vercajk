@@ -34,7 +34,7 @@ def validation_context(value: dict[str, typing.Any]) -> typing.Iterator[None]:
         _validation_context_var.reset(token)
 
 
-def set_gql_params[V: "ValidatedInput"](
+def set_gql_params[V](
     *,
     name: str,
 ) -> typing.Callable[[type[V]], type[V]]:
@@ -67,10 +67,9 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
 
     @classmethod
     def __class_getitem__(cls, item: type[CleanDataType] | typing.TypeVar) -> type["ValidatedInput[CleanDataType]"]:
-        if typing.TYPE_CHECKING or isinstance(item, typing.TypeVar):
+        if isinstance(item, typing.TypeVar):
             # Type checking - workaround for cases as
             # `def pydantic_to_input_type[T: "pydantic.BaseModel"](...) -> type[ValidatedInput[T]]: ...`
-            # or `class FilterSetInput[T: FilterSet](ValidatedInput[T]): ...`
             return cls
         return pydantic_to_input_type(item)
 
@@ -100,7 +99,7 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
         return self.errors
 
     @property
-    def clean_data(self) -> CleanDataType | None:
+    def clean_data(self) -> CleanDataType:
         if self.__clean_data is UNSET:
             raise ValueError("You must call `clean` before accessing `clean_data`.")
         if self.__clean_data is None:

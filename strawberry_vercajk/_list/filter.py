@@ -2,7 +2,6 @@ __all__ = [
     "Filter",
     "FilterQ",
     "FilterSet",
-    "FilterSetInput",
     "model_filter",
 ]
 
@@ -18,7 +17,7 @@ import pydantic
 import pydantic.fields
 
 from strawberry_vercajk._base import utils as base_utils
-from strawberry_vercajk._validation.validator import InputValidator, ValidatedInput
+from strawberry_vercajk._validation.validator import InputValidator
 
 # Add more when needed. See django.db.models.lookups or django.db.models.<FieldClass>.get_lookups().
 _DBLookupType = typing.Literal[
@@ -90,7 +89,7 @@ class FilterQ:
         return FilterQ(_left=left, _right=right, _operator="OR")
 
     def __invert__(self) -> typing.Self:
-        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
+        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator=None if self.is_not else "NOT")
 
     def __bool__(self) -> bool:
         return not self.is_noop
@@ -591,10 +590,6 @@ class FilterSet(InputValidator):
                 f"`{cls.__name__}` filter annotated as `{field_annotation}` is not supported. "
                 f"We do not support complex union types other than `<type> | None`, i.e., optional field.",
             )
-
-
-class FilterSetInput[T: FilterSet](ValidatedInput[T]):
-    """Input for filtering a list of objects."""
 
 
 # Exceptions
