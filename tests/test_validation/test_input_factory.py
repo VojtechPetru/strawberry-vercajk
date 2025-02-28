@@ -370,3 +370,96 @@ def test_input_factory_make_with_hashed_id_field_list_optional_optional() -> Non
     assert type(definition.fields[0].type_annotation.annotation.of_type) is StrawberryList
     assert type(definition.fields[0].type_annotation.annotation.of_type.of_type) is StrawberryOptional
     assert definition.fields[0].type_annotation.annotation.of_type.of_type.of_type is strawberry.ID
+
+
+def test_input_factory_with_annotated_nested_validator_field_required() -> None:
+    class NestedValidator(pydantic.BaseModel):
+        something: str
+        num: int
+
+    def _something_cannot_be_pepa(v: NestedValidator) -> NestedValidator:
+        if v.something == "pepa":
+            raise pydantic.ValidationError("Something cannot be pepa")
+        return v
+
+    NotPepaValidatorField = typing.Annotated[
+        NestedValidator,
+        pydantic.AfterValidator(_something_cannot_be_pepa),
+    ]
+
+    class Model(pydantic.BaseModel):
+        nested: NotPepaValidatorField
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert len(definition.fields) == 1
+    assert definition.fields[0].name == "nested"
+    assert len(definition.fields[0].type_annotation.annotation._type_definition.fields) == 2
+    assert definition.fields[0].type_annotation.annotation._type_definition.fields[0].name == "something"
+    assert definition.fields[0].type_annotation.annotation._type_definition.fields[1].name == "num"
+    assert definition.fields[0].type_annotation.annotation._type_definition.fields[0].type_annotation.annotation is str
+    assert definition.fields[0].type_annotation.annotation._type_definition.fields[1].type_annotation.annotation is int
+
+def test_input_factory_with_annotated_nested_validator_field_not_required_with_default() -> None:
+    class NestedValidator(pydantic.BaseModel):
+        something: str
+        num: int
+
+    def _something_cannot_be_pepa(v: NestedValidator) -> NestedValidator:
+        if v.something == "pepa":
+            raise pydantic.ValidationError("Something cannot be pepa")
+        return v
+
+    NotPepaValidatorField = typing.Annotated[
+        NestedValidator,
+        pydantic.AfterValidator(_something_cannot_be_pepa),
+    ]
+
+    class Model(pydantic.BaseModel):
+        nested: NotPepaValidatorField | None = None
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert len(definition.fields) == 1
+    # check that the nested validator was recognised and registered by the InputFactory
+    assert NestedValidator in InputFactory._REGISTRY
+
+
+def test_input_factory_with_annotated_nested_validator_field_with_another_annotation() -> None:
+    class NestedValidator(pydantic.BaseModel):
+        something: str
+        num: int
+
+    def _something_cannot_be_pepa(v: NestedValidator) -> NestedValidator:
+        if v.something == "pepa":
+            raise pydantic_core.PydanticCustomError(
+                "something_cannot_be_pepa",
+                "Something cannot be pepa",
+            )
+        return v
+
+    NotPepaValidatorField = typing.Annotated[
+        NestedValidator,
+        pydantic.AfterValidator(_something_cannot_be_pepa),
+    ]
+
+    class Model(pydantic.BaseModel):
+        nested: typing.Annotated[
+            NotPepaValidatorField | None,
+            pydantic.Field(description="Descr.", deprecated="Deprecation reason")
+        ] = None
+
+    gql_input = InputFactory.make(Model)
+    definition = gql_input.__strawberry_definition__
+    assert len(definition.fields) == 1
+    # check that the nested validator was recognised and registered by the InputFactory
+    assert NestedValidator in InputFactory._REGISTRY
+
+    input_data = gql_input(nested={"something": "sth", "num": 1})
+    errors = input_data.clean()
+    assert not errors
+    input_data = gql_input(nested={"something": "pepa", "num": 1})
+    errors = input_data.clean()
+    assert len(errors) == 1
+    assert errors[0].code == "something_cannot_be_pepa"
+    assert errors[0].location == ["nested",]

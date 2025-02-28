@@ -231,11 +231,13 @@ class InputFactory:
          - `Optional[SomeEnum]`
          - `list[SomeEnum]`
          - `list[SomeEnum | None]`
+         - `typing.Annotated[SomeEnum | None, ...]`
+         - `typing.Annotated[SomeEnum, ...] | None`
         :param from_type: The type to get the type from
         :param type_: The type to get
         :raises TypeError: if the type is not found
         """
-        if typing.get_origin(from_type) in [types.UnionType, typing.Union]:
+        if typing.get_origin(from_type) in [types.UnionType, typing.Union, typing.Annotated]:
             for internal_type in typing.get_args(from_type):
                 try:
                     return cls.__get_from_complex_type(internal_type, type_)

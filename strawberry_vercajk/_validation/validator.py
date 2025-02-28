@@ -61,7 +61,8 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
     """A class to be used to validate input data. Used on `strawberry.experimental.pydantic.input` types."""
 
     __clean_data: CleanDataType | None = UNSET
-    __errors: list["gql_types.ErrorInterface"] | None = UNSET
+    __errors: list["gql_types.ErrorInterface"] = UNSET
+    __original_error: pydantic.ValidationError | None = UNSET
     __strawberry_definition__: typing.ClassVar["strawberry.types.base.StrawberryObjectDefinition"]
     # _pydantic_type: type[CleanDataType]  # set by strawberry - use `get_validator` method instead
 
@@ -92,9 +93,11 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
                     cleaned_data: CleanDataType = self.to_pydantic(is_inner=False)
                 except pydantic.ValidationError as e:
                     self.clean_data = None
+                    self.original_error = e
                     self.errors = build_errors(e)
                 else:
                     self.errors = []
+                    self.original_error = None
                     self.clean_data = cleaned_data
         return self.errors
 
@@ -123,6 +126,18 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
         if self.__errors is not UNSET:
             raise AttributeError("Cannot re-set errors attribute - it is read-only.")
         self.__errors = value
+
+    @property
+    def original_error(self) -> pydantic.ValidationError | None:
+        if self.__original_error is UNSET:
+            raise ValueError("You must call `clean` method before accessing `original_error`.")
+        return self.__original_error
+
+    @original_error.setter
+    def original_error(self, value: pydantic.ValidationError) -> None:
+        if self.__original_error is not UNSET:
+            raise AttributeError("Cannot re-set original_error attribute - it is read-only.")
+        self.__original_error = value
 
     @classmethod
     def get_validator(cls) -> type[CleanDataType]:

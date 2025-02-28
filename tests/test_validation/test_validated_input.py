@@ -219,6 +219,8 @@ def test_specific_validator_stripped_from_error_location() -> None:
     assert len(errors) == 1  # only the first error should be kept, other are discarded as would only be confusing
     assert errors[0].location == ["url"]
     assert errors[0].code == "url_parsing"
+    assert input_data.original_error.error_count() == 2  # both errors are still in the original error
+    assert {error["type"] for error in input_data.original_error.errors()} == {"url_parsing", "literal_error"}
 
 
 def test_hashed_id_annotated_field_invalid_value() -> None:
@@ -229,9 +231,14 @@ def test_hashed_id_annotated_field_invalid_value() -> None:
     input_data = input_type(some_id="prefix_abc123def456ghi7")
     errors = input_data.clean()
     assert len(errors) == 1
+    assert isinstance(input_data.original_error, pydantic.ValidationError)
     assert errors[0].location == ["someId"]
     assert errors[0].code == "invalid_id"
     assert errors[0].message == "Invalid ID prefix_abc123def456ghi7."
+    assert input_data.original_error.error_count() == 1
+    assert input_data.original_error.errors()[0]["loc"] == ("some_id",)
+    assert input_data.original_error.errors()[0]["msg"] == "Invalid ID prefix_abc123def456ghi7."
+    assert input_data.original_error.errors()[0]["type"] == "invalid_id"
 
 
 def test_hashed_id_annotated_field_valid_value() -> None:
@@ -255,6 +262,7 @@ def test_hashed_id_annotated_field_valid_value() -> None:
     )
     errors = input_data.clean()
     assert len(errors) == 0
+    assert input_data.original_error is None
     assert isinstance(input_data.clean_data.some_id, strawberry_vercajk.HashedID)
     assert len(input_data.clean_data.some_id_list) == 2
     assert isinstance(input_data.clean_data.some_id_list[0], strawberry_vercajk.HashedID)
@@ -271,6 +279,7 @@ def test_validator_via_class_getitem() -> None:
     input_data = input_type(a=1, b=2)
     errors = input_data.clean()
     assert len(errors) == 0
+    assert input_data.original_error is None
     assert type(input_data.clean_data) is Model
     assert input_data.clean_data.a == 1
     assert input_data.clean_data.b == 2
