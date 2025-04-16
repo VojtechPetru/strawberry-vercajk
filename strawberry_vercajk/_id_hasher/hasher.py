@@ -79,7 +79,7 @@ class BaseIDHasher(abc.ABC):
         )
         # Define __get_pydantic_core_schema__ on the type so we can use HashID(...) annotated field in Pydantic models.
         hash_id.__get_pydantic_core_schema__ = cls._scalar_pydantic_core_schema
-        typing.cast(type[strawberry.ID], hash_id)
+        typing.cast("type[strawberry.ID]", hash_id)
         return hash_id
 
     def from_hash_id(self, hashed_id: str, /) -> int:
@@ -94,7 +94,7 @@ class BaseIDHasher(abc.ABC):
     def _hash_id_serializer(cls, id_: int, /, model: type) -> str:
         """Return the hashed ID for the given ID."""
         hasher = cls(model)
-        return f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}{hasher.id_hasher.encode(id_)}"  # noqa: SLF001
+        return f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}{hasher.id_hasher.encode(id_)}"
 
     @classmethod
     def _hash_id_parser(
@@ -114,9 +114,9 @@ class BaseIDHasher(abc.ABC):
         hashed_id = HashedID(hashed_id)
         hasher = cls(model)
         hasher.validate_hash_id(hashed_id)
-        hashed_id = typing.cast(str, hashed_id)  # at this point, we know it's a string (validated above)
+        hashed_id = typing.cast("str", hashed_id)  # at this point, we know it's a string (validated above)
 
-        hashid_prefix = f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}"  # noqa: SLF001
+        hashid_prefix = f"{hasher._hash_id_prefix}{cls.PREFIX_SEPARATOR}"
         return hasher.id_hasher.decode(hashed_id.removeprefix(hashid_prefix))
 
     @staticmethod

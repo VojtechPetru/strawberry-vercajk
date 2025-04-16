@@ -73,7 +73,7 @@ class InputFactory:
             if hasattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME):
                 name = getattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME)
             else:
-                name = typing.cast(typing.LiteralString, input_validator.__name__.removesuffix("Validator"))
+                name = typing.cast("typing.LiteralString", input_validator.__name__.removesuffix("Validator"))
 
         fields = input_validator.__pydantic_fields__.copy()
         for field_info in fields.values():
@@ -123,7 +123,7 @@ class InputFactory:
         )
         input_cls.__annotations__ = {name: annot for name, annot, value in input_fields}
         gql_input = typing.cast(
-            type[ValidatedInput[T]],
+            "type[ValidatedInput[T]]",
             strawberry.experimental.pydantic.input(input_validator, name=name)(input_cls),
         )
         gql_input.to_pydantic = cls.to_pydantic

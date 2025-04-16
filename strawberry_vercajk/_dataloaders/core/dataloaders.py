@@ -22,7 +22,7 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
     def __new__(
         cls,
         info: strawberry.Info,
-        **kwargs,  # noqa: ARG003
+        **kwargs,  # noqa: ARG004
     ) -> "BaseDataLoader":
         """
         Returns a dataloader instance.

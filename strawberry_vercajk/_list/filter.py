@@ -308,8 +308,8 @@ class Filter(FilterInterface):
     def __str__(self) -> str:
         return (
             f"({type(self).__name__}) "
-            f"{self.__filterset_cls.__name__ if self.__filterset_cls else ""}."
-            f"{self.__field_name if self.__field_name else ""}"
+            f"{self.__filterset_cls.__name__ if self.__filterset_cls else ''}."
+            f"{self.__field_name if self.__field_name else ''}"
         )
 
     @property
@@ -382,14 +382,14 @@ class Filter(FilterInterface):
                     f"yet the field is annotated as `{self.filterset_field_type}`.",
                 )
             return "in"
-        return typing.cast(_DBLookupType, suffix_inferred_lookup or "exact")
+        return typing.cast("_DBLookupType", suffix_inferred_lookup or "exact")
 
     @property
     def model_field(self) -> typing.LiteralString:
         """Field name on the model"""
         if self._model_field:
             return self._model_field
-        return typing.cast(typing.LiteralString, self.field_name.removesuffix(f"_{self.lookup}"))
+        return typing.cast("typing.LiteralString", self.field_name.removesuffix(f"_{self.lookup}"))
 
     def get_filter_q(
         self,
