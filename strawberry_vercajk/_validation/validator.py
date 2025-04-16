@@ -146,7 +146,7 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
         except AttributeError as e:
             raise AttributeError(
                 f"Cannot find validator on {cls.__name__}. "
-                f"Make sure to use `strawberry_vercajk.pydantic_to_input_type` to create the input type.",
+                f"Make sure to use `{cls.__name__}[ValidatorCls]` to create the input type from the ValidatorCls.",
             ) from e
 
 

@@ -2,12 +2,10 @@ import typing
 
 import strawberry
 
-__all__ = (
-    "IntStr",
-)
+__all__ = ("IntStr",)
 
 
-def _scalar_serialize(value: typing.Any) -> int | str: # noqa: ANN401
+def _scalar_serialize(value: typing.Any) -> int | str:  # noqa: ANN401
     if isinstance(value, int | str):
         return value
     raise TypeError("The value needs to be an integer or a string.")

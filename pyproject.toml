@@ -60,8 +60,6 @@ ignore = [
     "A003",  # Class attribute `id` is shadowing a Python builtin (we use this e.g. in Django models, dataclasses, ...)
     "ANN002",  # Missing type annotation for *args in function definition
     "ANN003",  # Missing type annotation for **kwargs in function definition
-    "ANN101",  # missing annotation for self
-    "ANN102",  # Missing type annotation for `cls` in classmethod
     "B008",  # Do not perform function call in argument defaults - we use this e.g. in strawberry.field(...)
     "D100",  # missing docstring in public module (i.e., no docstring in a .py file)
     "D101",  # Missing docstring in public class
