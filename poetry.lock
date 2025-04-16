@@ -315,7 +315,7 @@ pydantic = ">=2.10.1"
 
 [package.source]
 type = "git"
-url = "ssh://git@github.com/coexcz/pydbull.git"
+url = "https://github.com/coexcz/pydbull.git"
 reference = "master"
 resolved_reference = "0c7ec81c580738917b442605efac3d1af4e679be"
 
@@ -531,4 +531,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "137118a24d40bd35c53293d8f67dbf38cca6fa4bfd309027917cbeb428ad6193"
+content-hash = "5df68b7fa20801c361d44b4954b65c16d0ec40fa8bc34c0c728a23b03ee2fca3"
