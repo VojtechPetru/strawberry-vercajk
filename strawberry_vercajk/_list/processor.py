@@ -6,6 +6,7 @@ import abc
 import typing
 
 import strawberry
+
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
 from strawberry_vercajk._list.page import Page, PageableItems
@@ -25,7 +26,7 @@ class BaseListRespHandler[T: PageableItems](abc.ABC):
         items: T,
         info: strawberry.Info,
         /,
-        page_cls: type[Page] = Page  # TODO improve type hint
+        page_cls: type[Page] = Page,  # TODO improve type hint
     ) -> None:
         self._info = info
         self._items = items

@@ -17,8 +17,8 @@ class AsyncDataLoader[K: typing.Hashable, R](strawberry.dataloader.DataLoader[K,
 
     def __new__(
         cls,
-        info: strawberry.Info,
-        **kwargs,  # noqa: ARG003
+        info: strawberry.Info,  # noqa: ARG004
+        **kwargs,  # noqa: ARG004
     ) -> "AsyncDataLoader":
         """
         Returns a dataloader instance.
@@ -27,6 +27,7 @@ class AsyncDataLoader[K: typing.Hashable, R](strawberry.dataloader.DataLoader[K,
         in the context of each request.
         """
         from strawberry_vercajk._base.extensions import dataloaders_context_var
+
         dataloaders = dataloaders_context_var.get()
         if cls not in dataloaders:
             dl = super().__new__(cls)
@@ -38,6 +39,7 @@ class AsyncDataLoader[K: typing.Hashable, R](strawberry.dataloader.DataLoader[K,
         info: strawberry.Info,
     ) -> None:
         from strawberry_vercajk._base.extensions import dataloaders_context_var
+
         dataloaders = dataloaders_context_var.get()
         if self._instance_cache is None:
             self._instance_cache = dataloaders[type(self)]

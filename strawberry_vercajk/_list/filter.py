@@ -15,6 +15,7 @@ from decimal import Decimal
 
 import pydantic
 import pydantic.fields
+
 from strawberry_vercajk._base import utils as base_utils
 from strawberry_vercajk._validation.validator import InputValidator
 
@@ -384,14 +385,14 @@ class Filter(FilterInterface):
                     f"yet the field is annotated as `{self.filterset_field_type}`.",
                 )
             return "in"
-        return typing.cast(_DBLookupType, suffix_inferred_lookup or "exact")
+        return typing.cast("_DBLookupType", suffix_inferred_lookup or "exact")
 
     @property
     def model_field(self) -> typing.LiteralString:
         """Field name on the model"""
         if self._model_field:
             return self._model_field
-        return typing.cast(typing.LiteralString, self.field_name.removesuffix(f"_{self.lookup}"))
+        return typing.cast("typing.LiteralString", self.field_name.removesuffix(f"_{self.lookup}"))
 
     def get_filter_q(
         self,

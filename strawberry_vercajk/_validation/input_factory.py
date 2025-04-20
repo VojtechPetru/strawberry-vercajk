@@ -11,9 +11,10 @@ import pydantic_core
 import pydbull
 import strawberry
 from strawberry.experimental.pydantic.conversion import convert_strawberry_class_to_pydantic_model
+
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._validation import constants, directives
-from strawberry_vercajk._validation.validator import ValidatedInput, AsyncValidatedInput
+from strawberry_vercajk._validation.validator import AsyncValidatedInput, ValidatedInput
 
 # GraphQL doesn't support working with larger integers than this.
 # We could define custom scalar, but for now it's not necessary.
@@ -86,7 +87,7 @@ class InputFactory:
         :param input_validator: pydantic.BaseModel subclass
         :param name: Name of the returned GraphQL type
         """
-        _ValidatedInputCls = AsyncValidatedInput if async_ else ValidatedInput
+        _ValidatedInputCls = AsyncValidatedInput if async_ else ValidatedInput  # noqa: N806
         if input_validator in cls._REGISTRY:
             return cls._REGISTRY[input_validator]
 
@@ -94,7 +95,7 @@ class InputFactory:
             if hasattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME):
                 name = getattr(input_validator, constants.INPUT_VALIDATOR_GQL_NAME)
             else:
-                name = typing.cast(typing.LiteralString, input_validator.__name__.removesuffix("Validator"))
+                name = typing.cast("typing.LiteralString", input_validator.__name__.removesuffix("Validator"))
 
         fields = input_validator.__pydantic_fields__.copy()
         for field_info in fields.values():
@@ -144,7 +145,7 @@ class InputFactory:
         )
         input_cls.__annotations__ = {name: annot for name, annot, value in input_fields}
         gql_input = typing.cast(
-            type[_ValidatedInputCls[T]],
+            "type[_ValidatedInputCls[T]]",
             strawberry.experimental.pydantic.input(input_validator, name=name)(input_cls),
         )
         gql_input.to_pydantic = cls.to_pydantic

@@ -1,13 +1,12 @@
 from __future__ import annotations
+
 __all__ = [
     "Page",
     "PageableItems",
 ]
 import functools
-
-import typing
-
 import math
+import typing
 
 
 class PageableItems[T](typing.Protocol):
@@ -28,7 +27,7 @@ class Page[T]:
         start = (self._page_num - 1) * self._page_size
         if hasattr(self._all_items, "slice"):
             return self._all_items.slice(start, start + self._page_size + 1)
-        return list(self._all_items[start:start + self._page_size + 1])
+        return list(self._all_items[start : start + self._page_size + 1])
 
     @property
     def items(self) -> list[T]:
@@ -72,8 +71,6 @@ class Page[T]:
     def has_previous_page(self) -> bool:
         """Return True if there is a previous page."""
         return self._page_num > 1
-
-
 
 
 # class Page[T](django.core.paginator.Page):

@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 __all__ = [
     "AsyncPage",
     "AsyncPageableItems",
 ]
 
+import math
 import typing
 
 import asyncstdlib
-import math
 
 
 class AsyncPageableItems[T](typing.Protocol):

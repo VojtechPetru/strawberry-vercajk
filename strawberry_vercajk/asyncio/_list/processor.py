@@ -7,7 +7,6 @@ import typing
 
 import strawberry
 
-from strawberry_vercajk import BaseListRespHandler
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
 from strawberry_vercajk.asyncio._list.page import AsyncPage, AsyncPageableItems
@@ -27,7 +26,7 @@ class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
         items: T,
         info: strawberry.Info,
         /,
-        page_cls: type[AsyncPage] = AsyncPage  # TODO improve type hint
+        page_cls: type[AsyncPage] = AsyncPage,  # TODO improve type hint
     ) -> None:
         self._info = info
         self._items = items

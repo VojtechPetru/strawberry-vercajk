@@ -7,10 +7,11 @@ import contextvars
 import typing
 
 import strawberry.extensions
+
 if typing.TYPE_CHECKING:
     from strawberry_vercajk import AsyncDataLoader
 
-T = typing.TypeVar("T", bound="BaseAsyncDataLoader")
+T = typing.TypeVar("T", bound="AsyncDataLoader")
 
 dataloaders_context_var = contextvars.ContextVar[dict[type[T], T]]("dataloaders_context_var")
 
@@ -22,7 +23,6 @@ def dataloaders_context() -> typing.Iterator[None]:
         yield
     finally:
         dataloaders_context_var.reset(token)
-
 
 
 class DataLoadersExtension(strawberry.extensions.SchemaExtension):

@@ -7,11 +7,12 @@ import functools
 import typing
 
 import strawberry
+
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk.asyncio._dataloaders import core
 
 if typing.TYPE_CHECKING:
-    from strawberry_vercajk import FilterQ, ListInnerType, PageInput, SortInput, ValidatedInput
+    from strawberry_vercajk import FilterQ, PageInput, SortInput, ValidatedInput
 
 
 class LoadFn[K: typing.Hashable](typing.Protocol):
@@ -158,4 +159,3 @@ class AsyncFKListDataLoader[K: typing.Hashable, R](core.AsyncDataLoader[K, R]): 
             )
 
         return [key_to_list_type.get(id_, []) for id_ in keys]
-
