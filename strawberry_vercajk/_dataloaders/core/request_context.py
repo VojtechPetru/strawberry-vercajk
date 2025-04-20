@@ -22,4 +22,4 @@ class InfoDataloadersContextMixin:
     ...     pass
     """
 
-    dataloaders: dict[type["BaseDataLoader"], "BaseDataLoader"] = strawberry.field(default_factory=dict)  # noqa: RUF009
+    dataloaders: dict[type["BaseDataLoader"], "BaseDataLoader"] = strawberry.field(default_factory=dict)

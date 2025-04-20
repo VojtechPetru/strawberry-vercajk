@@ -1,16 +1,15 @@
 __all__ = [
+    "AsyncFieldValidator",
+    "AsyncValidatedInput",
     "InputValidator",
     "ValidatedInput",
+    "async_model_validator",
     "build_errors",
     "pydantic_to_input_type",
     "set_gql_params",
     "validation_context",
-    "AsyncValidatedInput",
-    "async_model_validator",
-    "AsyncFieldValidator",
 ]
 
-import abc
 import contextlib
 import contextvars
 import logging
@@ -80,12 +79,13 @@ class ValidatedInput[CleanDataType: "pydantic.BaseModel"]:
             # `def pydantic_to_input_type[T: "pydantic.BaseModel"](...) -> type[ValidatedInput[T]]: ...`
             return cls
         from strawberry_vercajk import InputFactory
+
         if issubclass(item, InputValidator):
             async_validators = item.get_async_validators()
             if async_validators["model"] or async_validators["fields"]:
                 raise TypeError(
-                    f"Cannot create input type for async validators. "
-                    f"Use `AsyncValidatedInput` instead of `ValidatedInput`.",
+                    "Cannot create input type for async validators. "
+                    "Use `AsyncValidatedInput` instead of `ValidatedInput`.",
                 )
         return InputFactory.make(item)
 
@@ -170,16 +170,21 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
     Like `ValidatedInput`, but for validators which use async validators.
     See `AsyncFieldValidator` and `@async_model_validator`.
     """
+
     __clean_data: CleanDataType | None = UNSET
     __errors: list["gql_types.ErrorInterface"] | None = UNSET
 
     @classmethod
-    def __class_getitem__(cls, item: type[CleanDataType] | typing.TypeVar) -> type["AsyncValidatedInput[CleanDataType]"]:
+    def __class_getitem__(
+        cls,
+        item: type[CleanDataType] | typing.TypeVar,
+    ) -> type["AsyncValidatedInput[CleanDataType]"]:
         if isinstance(item, typing.TypeVar):
             # Type checking - workaround for cases as
             # `def pydantic_to_input_type[T: "pydantic.BaseModel"](...) -> type[ValidatedInput[T]]: ...`
             return cls
         from strawberry_vercajk import InputFactory
+
         if not issubclass(item, InputValidator):
             raise TypeError(f"`{item}` must inherit from `{InputValidator.__name__}`.")
         return InputFactory.make(item, async_=True)
@@ -247,7 +252,7 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
             if field_info.annotation is pydantic.BaseModel:
                 inner_errors = await cls._run_async_clean(
                     cleaned_data.__getattribute__(field_name),
-                    _loc_prepend=_loc_prepend + (field_name,),
+                    _loc_prepend=(*_loc_prepend, field_name),
                 )
                 errors.extend(inner_errors)
                 if inner_errors:
@@ -264,7 +269,7 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
                             field_name=field_name,
                             field_value=field_value,
                             loc_prepend=_loc_prepend,
-                        )
+                        ),
                     )
         return errors
 
@@ -274,7 +279,7 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
         cleaned_data: CleanDataType,
         *,
         _loc_prepend: tuple[str | int, ...] = (),
-    ):
+    ) -> list[pydantic_core.InitErrorDetails]:
         errors: list[pydantic_core.InitErrorDetails] = []
         validator_method_names = cleaned_data.get_async_validators()["model"]
         for validator_method_name in validator_method_names:
@@ -287,7 +292,7 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
                         field_name=None,
                         field_value=None,
                         loc_prepend=_loc_prepend,
-                    )
+                    ),
                 )
         return errors
 
@@ -296,7 +301,7 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
         e: pydantic.ValidationError | pydantic_core.InitErrorDetails,
         *,
         field_name: str | None,
-        field_value: typing.Any | None,
+        field_value: typing.Any | None,  # noqa: ANN401
         loc_prepend: tuple[str | int, ...] = (),
     ) -> list[pydantic_core.InitErrorDetails]:
         """
@@ -309,8 +314,8 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
                 errors.append(
                     pydantic_core.InitErrorDetails(
                         type=pydantic_core.PydanticCustomError(
-                            typing.cast(typing.LiteralString, err["type"]),
-                            typing.cast(typing.LiteralString, err["msg"]),
+                            typing.cast("typing.LiteralString", err["type"]),
+                            typing.cast("typing.LiteralString", err["msg"]),
                         ),
                         loc=loc_prepend + err["loc"],
                         input=err["input"],
@@ -328,7 +333,6 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
         else:
             raise TypeError(f"Expected pydantic.ValidationError or pydantic_core.PydanticCustomError, got {type(e)}.")
         return errors
-
 
 
 class AsyncFieldValidator:
@@ -353,20 +357,21 @@ class AsyncFieldValidator:
         ...         str,
         ...         strawberry_vercajk.AsyncFieldValidator(username_not_pepa)
         ...     ]
+
     """
 
     def __init__(
         self,
         validator: typing.Callable[[typing.Any], typing.Awaitable[typing.Any]],
         /,
-    ):
+    ) -> None:
         """
         Initialize the validator.
         :param validator: The validator function to be called.
         """
         self.validator = validator
 
-    async def __call__(self, value: typing.Any) -> typing.Any:
+    async def __call__(self, value: typing.Any) -> typing.Any:  # noqa: ANN401
         """
         Validate the value and return it.
         """
@@ -398,6 +403,7 @@ def async_model_validator[M: typing.Callable[[typing.Any], typing.Awaitable[None
         ...                 "Email must end with @example.com",
         ...             )
         ...         return self
+
     """
 
     def wrapper(method_: M, /) -> M:

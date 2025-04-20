@@ -8,6 +8,7 @@ import typing
 import pydantic
 import pydantic_core
 import strawberry
+
 # from django.conf import settings as django_settings
 
 SETTINGS_NAME: str = "STRAWBERRY_VERCAJK"

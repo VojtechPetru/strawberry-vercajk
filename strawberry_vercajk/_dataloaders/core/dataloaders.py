@@ -21,8 +21,8 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
 
     def __new__(
         cls,
-        info: strawberry.Info,
-        **kwargs,  # noqa: ARG003
+        info: strawberry.Info,  # noqa: ARG004
+        **kwargs,  # noqa: ARG004
     ) -> "BaseDataLoader":
         """
         Returns a dataloader instance.
@@ -31,6 +31,7 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
         in the context of each request.
         """
         from strawberry_vercajk._base.extensions import dataloaders_context_var
+
         dataloaders = dataloaders_context_var.get()
         if cls not in dataloaders:
             dl = super().__new__(cls)
@@ -42,6 +43,7 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
         info: strawberry.Info,
     ) -> None:
         from strawberry_vercajk._base.extensions import dataloaders_context_var
+
         dataloaders = dataloaders_context_var.get()
         if self._instance_cache is None:
             self._instance_cache = dataloaders[type(self)]

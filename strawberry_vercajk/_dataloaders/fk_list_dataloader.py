@@ -8,6 +8,7 @@ import functools
 import typing
 
 import strawberry
+
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._dataloaders import core
 
