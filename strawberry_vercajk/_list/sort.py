@@ -11,7 +11,6 @@ import typing
 
 import pydantic
 import strawberry
-
 from strawberry_vercajk._base import utils as base_utils
 
 _SORT_MODEL_ATTR_NAME: typing.LiteralString = "__VERCAJK_MODEL"

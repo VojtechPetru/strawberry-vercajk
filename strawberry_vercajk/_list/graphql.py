@@ -14,7 +14,6 @@ import enum
 import typing
 
 import strawberry
-
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.sort import OrderingDirection, OrderingNullsPosition
 
@@ -42,32 +41,39 @@ class PageInnerMetadataType(PageMetadataInterface):
 @strawberry.type(name="Page", description="Pagination metadata.")
 class PageMetadataType(PageMetadataInterface):
     @strawberry.field(description="Current page number.")
-    def current_page(self: "Page") -> int:
-        return self.number
+    @staticmethod
+    def current_page(root: strawberry.Parent["Page"]) -> int:
+        return root.current_page
 
     @strawberry.field(description="Number of items on this page.")
-    def items_count(self: "Page") -> int:
-        return self.items_count
+    @staticmethod
+    def items_count(root: strawberry.Parent["Page"]) -> int:
+        return root.items_count
 
     @strawberry.field(description="Total number of items.")
-    def total_items_count(self: "Page") -> int:
-        return self.paginator.count
+    @staticmethod
+    def total_items_count(root: strawberry.Parent["Page"]) -> int:
+        return root.total_items_count
 
     @strawberry.field(description="Number of items per page.")
-    def page_size(self: "Page") -> int:
-        return self.paginator.per_page
+    @staticmethod
+    def page_size(root: strawberry.Parent["Page"]) -> int:
+        return root.page_size
 
     @strawberry.field(description="Total number of pages.")
-    def total_pages_count(self: "Page") -> int:
-        return self.paginator.num_pages
+    @staticmethod
+    def total_pages_count(root: strawberry.Parent["Page"]) -> int:
+        return root.total_pages_count
 
     @strawberry.field(description="Whether there is a previous page.")
-    def has_previous_page(self: "Page") -> bool:
-        return self.has_previous()
+    @staticmethod
+    def has_previous_page(root: strawberry.Parent["Page"]) -> bool:
+        return root.has_previous_page
 
     @strawberry.field(description="Whether there is a next page.")
-    def has_next_page(self: "Page") -> bool:
-        return self.has_next()
+    @staticmethod
+    def has_next_page(root: strawberry.Parent["Page"]) -> bool:
+        return root.has_next_page
 
 
 @strawberry.type(name="List", description="List of items.")

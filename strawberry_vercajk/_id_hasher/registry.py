@@ -7,7 +7,6 @@ import pydantic
 import pydantic_core
 import strawberry
 import strawberry.types.scalar
-
 from strawberry_vercajk._id_hasher import exceptions
 
 if typing.TYPE_CHECKING:
@@ -53,7 +52,7 @@ class HashIDRegistry:
         This is a private method, use the model decorator instead.
         """
         if gql_scalar_name is None:
-            gql_scalar_name = typing.cast("typing.LiteralString", f"{model.__name__}ID")
+            gql_scalar_name = typing.cast(typing.LiteralString, f"{model.__name__}ID")
         cls._pre_registration_checks(model, hash_id_prefix, gql_scalar_name)
 
         from strawberry_vercajk._id_hasher import IDHasher
