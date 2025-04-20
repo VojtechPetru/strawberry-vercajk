@@ -1,3 +1,4 @@
+import contextlib
 import dataclasses
 import time
 import typing
@@ -64,10 +65,8 @@ class QueryLogger(_DbQueryGroup):
 
     def __exit__(self, *args, **kwargs) -> None:
         for connection in django.db.connections.all():
-            try:
+            with contextlib.suppress(ValueError):
                 connection.execute_wrappers.remove(self)
-            except ValueError:
-                pass
 
     def __call__(
         self,

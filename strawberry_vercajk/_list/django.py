@@ -2,7 +2,6 @@ import typing
 
 import django.db.models
 import strawberry
-
 from strawberry_vercajk._list.processor import BaseListRespHandler
 
 if typing.TYPE_CHECKING:

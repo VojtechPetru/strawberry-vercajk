@@ -6,7 +6,7 @@ import typing
 import graphql_sync_dataloaders
 import strawberry
 
-from strawberry_vercajk._dataloaders.core import InfoDataloadersContextMixin
+_DATALOADERS_ATTR = "_vercajk_dataloaders"
 
 
 class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoader):
@@ -22,7 +22,7 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
     def __new__(
         cls,
         info: strawberry.Info,
-        **kwargs,  # noqa: ARG004
+        **kwargs,  # noqa: ARG003
     ) -> "BaseDataLoader":
         """
         Returns a dataloader instance.
@@ -30,22 +30,21 @@ class BaseDataLoader[K: typing.Hashable, R](graphql_sync_dataloaders.SyncDataLoa
         This makes the dataloader "semi-singleton" in the sense that they are a singleton
         in the context of each request.
         """
-        if not isinstance(info.context, InfoDataloadersContextMixin):
-            raise TypeError(
-                # TODO write setup guide (custom Info class with overridden context property to `schema`)
-                "strawberry.Info.context must be an instance of `strawberry_vercajk.InfoDataloadersContextMixin`.",
-            )
-        if cls not in info.context.dataloaders:
+        from strawberry_vercajk._base.extensions import dataloaders_context_var
+        dataloaders = dataloaders_context_var.get()
+        if cls not in dataloaders:
             dl = super().__new__(cls)
-            info.context.dataloaders[cls] = dl
-        return info.context.dataloaders[cls]
+            dataloaders[cls] = dl
+        return dataloaders[cls]
 
     def __init__(
         self,
         info: strawberry.Info,
     ) -> None:
+        from strawberry_vercajk._base.extensions import dataloaders_context_var
+        dataloaders = dataloaders_context_var.get()
         if self._instance_cache is None:
-            self._instance_cache = info.context.dataloaders[type(self)]
+            self._instance_cache = dataloaders[type(self)]
             self.info = info
             super().__init__(batch_load_fn=self._processed_load_fn)
 

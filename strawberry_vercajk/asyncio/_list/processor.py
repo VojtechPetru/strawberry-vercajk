@@ -1,22 +1,24 @@
 __all__ = [
-    "BaseListRespHandler",
+    "BaseAsyncListRespHandler",
 ]
 
 import abc
 import typing
 
 import strawberry
+
+from strawberry_vercajk import BaseListRespHandler
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
-from strawberry_vercajk._list.page import Page, PageableItems
+from strawberry_vercajk.asyncio._list.page import AsyncPage, AsyncPageableItems
 
 if typing.TYPE_CHECKING:
     from strawberry_vercajk._list.filter import FilterSet
 
 
-class BaseListRespHandler[T: PageableItems](abc.ABC):
+class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
     """
-    Response handler for QuerySet/list of items.
+    Response handler for a list of items.
     Groups logic for processing a common list request - handles pagination, sorting, filtering.
     """
 
@@ -25,13 +27,13 @@ class BaseListRespHandler[T: PageableItems](abc.ABC):
         items: T,
         info: strawberry.Info,
         /,
-        page_cls: type[Page] = Page  # TODO improve type hint
+        page_cls: type[AsyncPage] = AsyncPage  # TODO improve type hint
     ) -> None:
         self._info = info
         self._items = items
         self._page_cls = page_cls
 
-    def process(
+    async def process(
         self,
         page: "PageInput|None" = strawberry.UNSET,
         sort: "SortInput|None" = strawberry.UNSET,
@@ -60,7 +62,7 @@ class BaseListRespHandler[T: PageableItems](abc.ABC):
         self,
         items: T,
         page: PageInput | None = strawberry.UNSET,
-    ) -> Page[T]:
+    ) -> AsyncPage[T]:
         """
         Applies the given pagination to the given queryset.
         :param items: The queryset to paginate.

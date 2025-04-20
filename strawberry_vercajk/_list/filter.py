@@ -15,7 +15,6 @@ from decimal import Decimal
 
 import pydantic
 import pydantic.fields
-
 from strawberry_vercajk._base import utils as base_utils
 from strawberry_vercajk._validation.validator import InputValidator
 
@@ -89,7 +88,7 @@ class FilterQ:
         return FilterQ(_left=left, _right=right, _operator="OR")
 
     def __invert__(self) -> typing.Self:
-        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator=None if self.is_not else "NOT")
+        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
 
     def __bool__(self) -> bool:
         return not self.is_noop
@@ -385,14 +384,14 @@ class Filter(FilterInterface):
                     f"yet the field is annotated as `{self.filterset_field_type}`.",
                 )
             return "in"
-        return typing.cast("_DBLookupType", suffix_inferred_lookup or "exact")
+        return typing.cast(_DBLookupType, suffix_inferred_lookup or "exact")
 
     @property
     def model_field(self) -> typing.LiteralString:
         """Field name on the model"""
         if self._model_field:
             return self._model_field
-        return typing.cast("typing.LiteralString", self.field_name.removesuffix(f"_{self.lookup}"))
+        return typing.cast(typing.LiteralString, self.field_name.removesuffix(f"_{self.lookup}"))
 
     def get_filter_q(
         self,
