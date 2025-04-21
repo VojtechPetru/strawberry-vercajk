@@ -89,7 +89,7 @@ class FilterQ:
         return FilterQ(_left=left, _right=right, _operator="OR")
 
     def __invert__(self) -> typing.Self:
-        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator=None if self.is_not else "NOT")
+        return FilterQ(field=self.field, lookup=self.lookup, value=self.value, _operator="NOT")
 
     def __bool__(self) -> bool:
         return not self.is_noop

@@ -8,7 +8,8 @@ import typing
 import pydantic
 import pydantic_core
 import strawberry
-from django.conf import settings as django_settings
+
+# from django.conf import settings as django_settings
 
 SETTINGS_NAME: str = "STRAWBERRY_VERCAJK"
 
@@ -54,7 +55,8 @@ class AppListSettings:
 
     @property
     def _global_settings(self) -> StrawberryVercajkSettings:
-        return getattr(django_settings, SETTINGS_NAME, {})
+        # return getattr(django_settings, SETTINGS_NAME, {})
+        return {}
 
     @property
     def _settings(self) -> ListSettings:
@@ -72,7 +74,8 @@ class AppIDHasherSettings:
 
     @property
     def _global_settings(self) -> StrawberryVercajkSettings:
-        return getattr(django_settings, SETTINGS_NAME, {})
+        # return getattr(django_settings, SETTINGS_NAME, {})
+        return {}
 
     @property
     def _settings(self) -> IDHasherSettings:
@@ -105,7 +108,8 @@ class AppValidationSettings:
 
     @property
     def _global_settings(self) -> StrawberryVercajkSettings:
-        return getattr(django_settings, SETTINGS_NAME, {})
+        # return getattr(django_settings, SETTINGS_NAME, {})
+        return {}
 
     @property
     def _settings(self) -> ValidationSettings:
@@ -115,7 +119,8 @@ class AppValidationSettings:
 class AppSettings:
     @property
     def _settings(self) -> StrawberryVercajkSettings:
-        return getattr(django_settings, SETTINGS_NAME, {})
+        # return getattr(django_settings, SETTINGS_NAME, {})
+        return {}
 
     @property
     def LIST(self) -> AppListSettings:  # noqa: N802

@@ -38,9 +38,9 @@ class PKDataLoader[K: typing.Hashable, R: ResultType](core.BaseDataLoader[K, R])
 
     @typing.override
     def process_results(self, keys: list[K], results: list[R]) -> list[R]:
-        key_to_res: dict[K, R] = {r.pk: r for r in results}
+        key__res: dict[K, R] = {r.pk: r for r in results}
         # ensure results are ordered in the same way as input keys
-        return [key_to_res.get(id_) for id_ in keys]
+        return [key__res.get(id_) for id_ in keys]
 
 
 # class PKDataLoaderFactory(core.BaseDataLoaderFactory[PKDataLoader]):  # TODO reimplement in Django-specific package

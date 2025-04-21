@@ -14,7 +14,7 @@ from strawberry.experimental.pydantic.conversion import convert_strawberry_class
 
 from strawberry_vercajk._app_settings import app_settings
 from strawberry_vercajk._validation import constants, directives
-from strawberry_vercajk._validation.validator import ValidatedInput
+from strawberry_vercajk._validation.validator import AsyncValidatedInput, ValidatedInput
 
 # GraphQL doesn't support working with larger integers than this.
 # We could define custom scalar, but for now it's not necessary.
@@ -53,12 +53,33 @@ class InputFactory:
 
     _REGISTRY: typing.ClassVar[dict[type["pydantic.BaseModel"], type["ValidatedInput"]]] = {}
 
+    @typing.overload
     @classmethod
     def make[T: pydantic.BaseModel](
         cls,
         input_validator: type[T],
         *,
         name: typing.LiteralString | None = None,
+        async_: typing.Literal[True],
+    ) -> type[AsyncValidatedInput[T]]: ...
+
+    @typing.overload
+    @classmethod
+    def make[T: pydantic.BaseModel](
+        cls,
+        input_validator: type[T],
+        *,
+        name: typing.LiteralString | None = None,
+        async_: typing.Literal[False] = False,
+    ) -> type[ValidatedInput[T]]: ...
+
+    @classmethod
+    def make[T: pydantic.BaseModel](
+        cls,
+        input_validator: type[T],
+        *,
+        name: typing.LiteralString | None = None,
+        async_: bool = False,
     ) -> type[ValidatedInput[T]]:
         """
         Take a pydantic models and return a `ValidatedInput` GraphQL type.
@@ -66,6 +87,7 @@ class InputFactory:
         :param input_validator: pydantic.BaseModel subclass
         :param name: Name of the returned GraphQL type
         """
+        _ValidatedInputCls = AsyncValidatedInput if async_ else ValidatedInput  # noqa: N806
         if input_validator in cls._REGISTRY:
             return cls._REGISTRY[input_validator]
 
@@ -118,12 +140,12 @@ class InputFactory:
         # Create the strawberry input class
         input_cls = type(
             name,
-            (ValidatedInput,),
+            (_ValidatedInputCls,),
             {name: value for name, annot, value in input_fields},
         )
         input_cls.__annotations__ = {name: annot for name, annot, value in input_fields}
         gql_input = typing.cast(
-            "type[ValidatedInput[T]]",
+            "type[_ValidatedInputCls[T]]",
             strawberry.experimental.pydantic.input(input_validator, name=name)(input_cls),
         )
         gql_input.to_pydantic = cls.to_pydantic
