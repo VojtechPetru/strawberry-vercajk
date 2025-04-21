@@ -245,7 +245,6 @@ class AsyncValidatedInput[CleanDataType: "InputValidator"](ValidatedInput[CleanD
         _loc_prepend: tuple[str | int, ...] = (),
     ) -> list["pydantic_core.InitErrorDetails"]:
         # TODO asyncio TaskGroup to run all validators in parallel
-        # TODO cache these, so we don't have to loop through all fields and all metadata every time
         errors: list[pydantic_core.InitErrorDetails] = []
         validators = cleaned_data.get_async_validators()["fields"]
         for field_name, field_info in cleaned_data.__pydantic_fields__.items():
