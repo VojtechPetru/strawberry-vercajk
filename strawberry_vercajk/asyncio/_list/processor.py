@@ -59,7 +59,7 @@ class AsyncListType[T]:
     items: list[T]
 
 
-class BaseAsyncListRespHandler[T: AsyncPageableItems, L](abc.ABC):
+class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
     """
     Response handler for a list of items.
     Groups logic for processing a common list request - handles pagination, sorting, filtering.
