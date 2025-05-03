@@ -8,14 +8,58 @@ import typing
 import strawberry
 
 from strawberry_vercajk._app_settings import app_settings
-from strawberry_vercajk._list.graphql import ListType, PageInput, SortInput
+from strawberry_vercajk._list.graphql import PageInput, SortInput, PageMetadataInterface
 from strawberry_vercajk.asyncio._list.page import AsyncPage, AsyncPageableItems
 
 if typing.TYPE_CHECKING:
     from strawberry_vercajk._list.filter import FilterSet
 
 
-class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
+@strawberry.type(name="Page", description="Pagination metadata.")
+class AsyncPageMetadataType(PageMetadataInterface):
+    @strawberry.field(description="Current page number.")
+    @staticmethod
+    def current_page(root: strawberry.Parent["AsyncPage"]) -> int:
+        return root.current_page
+
+    @strawberry.field(description="Number of items on this page.")
+    @staticmethod
+    async def items_count(root: strawberry.Parent["AsyncPage"]) -> int:
+        return await root.items_count
+
+    @strawberry.field(description="Total number of items.")
+    @staticmethod
+    async def total_items_count(root: strawberry.Parent["AsyncPage"]) -> int:
+        return await root.total_items_count
+
+    @strawberry.field(description="Number of items per page.")
+    @staticmethod
+    def page_size(root: strawberry.Parent["AsyncPage"]) -> int:
+        return root.page_size
+
+    @strawberry.field(description="Total number of pages.")
+    @staticmethod
+    async def total_pages_count(root: strawberry.Parent["AsyncPage"]) -> int:
+        return await root.total_pages_count
+
+    @strawberry.field(description="Whether there is a previous page.")
+    @staticmethod
+    async def has_previous_page(root: strawberry.Parent["AsyncPage"]) -> bool:
+        return await root.has_previous_page
+
+    @strawberry.field(description="Whether there is a next page.")
+    @staticmethod
+    async def has_next_page(root: strawberry.Parent["AsyncPage"]) -> bool:
+        return await root.has_next_page
+
+
+@strawberry.type(name="List", description="List of items.")
+class AsyncListType[T]:
+    pagination: AsyncPageMetadataType
+    items: list[T]
+
+
+class BaseAsyncListRespHandler[T: AsyncPageableItems, L](abc.ABC):
     """
     Response handler for a list of items.
     Groups logic for processing a common list request - handles pagination, sorting, filtering.
@@ -26,7 +70,7 @@ class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
         items: T,
         info: strawberry.Info,
         /,
-        page_cls: type[AsyncPage] = AsyncPage,  # TODO improve type hint
+        page_cls: type[AsyncPage] = AsyncPage,
     ) -> None:
         self._info = info
         self._items = items
@@ -37,7 +81,7 @@ class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
         page: "PageInput|None" = strawberry.UNSET,
         sort: "SortInput|None" = strawberry.UNSET,
         filters: "ValidatedInput|None" = strawberry.UNSET,  # noqa: F821
-    ) -> ListType[T]:
+    ) -> AsyncListType[T]:
         """
         Processes the given object list request data and returns the response.
         :param page: The pagination to apply.
@@ -52,7 +96,7 @@ class BaseAsyncListRespHandler[T: AsyncPageableItems](abc.ABC):
             items = self.apply_filters(items, filters.clean_data)
         items = self.apply_sorting(items, sort)
         items_page = self.apply_pagination(items, page)
-        return ListType[T](
+        return AsyncListType[T](
             pagination=items_page,
             items=items_page.items,
         )
