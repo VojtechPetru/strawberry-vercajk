@@ -360,7 +360,7 @@ class InputValidator(pydantic.BaseModel):
     async def async_clean(self, *, raise_: typing.Literal[False]) -> list["pydantic_core.InitErrorDetails"]: ...
 
     async def async_clean(self, *, raise_: bool = True) -> list["pydantic_core.InitErrorDetails"] | None:
-        errors = self._run_async_clean(self)
+        errors = await self._run_async_clean(self)
         if raise_ and errors:
             raise pydantic.ValidationError.from_exception_data(
                 "Validation failed",
