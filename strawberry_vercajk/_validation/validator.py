@@ -422,6 +422,7 @@ class InputValidator(pydantic.BaseModel):
                             loc_prepend=_loc_prepend,
                         ),
                     )
+                    break
         return errors
 
     @classmethod
@@ -445,6 +446,7 @@ class InputValidator(pydantic.BaseModel):
                         loc_prepend=_loc_prepend,
                     ),
                 )
+                break
         return errors
 
     @staticmethod
