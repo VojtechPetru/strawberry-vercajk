@@ -190,3 +190,15 @@ def test_filterq_is_noop_false_complex() -> None:
             value=field_value,
         )
     assert not q.is_noop
+
+
+def test_filter_field_annotated_as_literal() -> None:
+    @model_filter(models.FruitEater)
+    class FruitEaterFilterSet(FilterSet):
+        field: typing.Annotated[
+            typing.Literal["VALUE_1", "VALUE_2", "VALUE_3"],
+            Filter(
+                model_field="name",
+                lookup="icontains",
+            )
+        ] = None

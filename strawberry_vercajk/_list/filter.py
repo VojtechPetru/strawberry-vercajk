@@ -334,6 +334,9 @@ class Filter(FilterInterface):
         if typing.get_origin(self.filterset_field_type) is list:
             # e.g., when the field is annotated as list[str]
             return True
+        if typing.get_origin(self.filterset_field_type) is typing.Literal:
+            # e.g., when the field is annotated as Literal["S1", "S2", ...]
+            return False
         inner_types: tuple[type, ...] = typing.get_args(self.filterset_field_type)
         if not inner_types:
             # e.g., when the field is annotated just as str
