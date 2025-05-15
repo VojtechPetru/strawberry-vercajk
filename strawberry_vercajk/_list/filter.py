@@ -433,6 +433,8 @@ class Filter(FilterInterface):
     def _check_model_field_exists(self) -> None:
         """Checks if the field exists on the model."""
         model_cls = self.filterset_cls.get_model()
+        if dataclasses.is_dataclass(model_cls):
+            return base_utils.check_dataclass_field_exists(model_cls, self.model_field)
         if issubclass(model_cls, pydantic.BaseModel):
             return base_utils.check_pydantic_field_exists(model_cls, self.model_field)
 
